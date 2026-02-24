@@ -119,6 +119,27 @@ class DispensationResource extends Resource
                             ->success()
                             ->send();
                     }),
+                Tables\Actions\Action::make('void')
+                    ->label('Void')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->visible(fn (Dispensation $record) => $record->status === 'completed')
+                    ->form([
+                        Forms\Components\Textarea::make('reason')
+                            ->label('Reason')
+                            ->required()
+                            ->maxLength(1000),
+                    ])
+                    ->action(function (Dispensation $record, array $data): void {
+                        $service = app(PharmacyInventoryService::class);
+                        $service->voidCompletedDispensation($record, performedBy: auth()->id(), reason: (string) ($data['reason'] ?? ''));
+
+                        Notification::make()
+                            ->title('Dispensation voided and stock restored')
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('cancel')
                     ->label('Cancel')
                     ->color('danger')

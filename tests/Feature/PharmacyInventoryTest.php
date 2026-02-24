@@ -183,4 +183,69 @@ final class PharmacyInventoryTest extends TestCase
             $this->assertSame(0, StockMovement::query()->where('type', 'dispense')->count());
         }
     }
+
+    public function test_void_completed_dispensation_restores_stock_and_writes_return_movements(): void
+    {
+        $user = User::factory()->create();
+
+        $drug = Drug::create([
+            'generic_name' => 'Azithromycin',
+            'is_active' => true,
+        ]);
+
+        $batch1 = DrugBatch::create([
+            'drug_id' => $drug->getKey(),
+            'batch_number' => 'AZI-1',
+            'expiry_date' => now()->addDays(10)->toDateString(),
+            'quantity_received' => 5,
+            'quantity_on_hand' => 5,
+            'unit_cost' => 50,
+            'sale_price' => 80,
+            'received_at' => now()->subDays(2),
+            'is_active' => true,
+        ]);
+
+        $batch2 = DrugBatch::create([
+            'drug_id' => $drug->getKey(),
+            'batch_number' => 'AZI-2',
+            'expiry_date' => now()->addDays(30)->toDateString(),
+            'quantity_received' => 10,
+            'quantity_on_hand' => 10,
+            'unit_cost' => 50,
+            'sale_price' => 90,
+            'received_at' => now()->subDays(1),
+            'is_active' => true,
+        ]);
+
+        $dispensation = Dispensation::create([
+            'status' => 'draft',
+        ]);
+
+        DispensationItem::create([
+            'dispensation_id' => $dispensation->getKey(),
+            'drug_id' => $drug->getKey(),
+            'quantity' => 8,
+            'unit_price' => 0,
+            'line_total' => 0,
+        ]);
+
+        $service = app(PharmacyInventoryService::class);
+
+        $completed = $service->completeDispensation($dispensation, performedBy: $user->getKey());
+
+        $batch1->refresh();
+        $batch2->refresh();
+        $this->assertSame(0, (int) $batch1->quantity_on_hand);
+        $this->assertSame(7, (int) $batch2->quantity_on_hand);
+
+        $voided = $service->voidCompletedDispensation($completed, performedBy: $user->getKey(), reason: 'Wrong patient');
+        $this->assertSame('cancelled', $voided->status);
+
+        $batch1->refresh();
+        $batch2->refresh();
+        $this->assertSame(5, (int) $batch1->quantity_on_hand);
+        $this->assertSame(10, (int) $batch2->quantity_on_hand);
+
+        $this->assertSame(2, StockMovement::query()->where('reference_id', $dispensation->getKey())->where('type', 'return')->count());
+    }
 }

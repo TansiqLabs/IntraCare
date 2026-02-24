@@ -123,3 +123,8 @@ _None yet._
 ### 2026-02-24 — Ops: `.env.example` made offline-first by default
 - **Change:** Updated `.env.example` defaults to boot without Redis/Meilisearch and without requiring an absolute `BACKUP_PATH`.
 - **Why:** Fresh installs should run on a single machine offline; Redis/Meilisearch remain optional and can be enabled by uncommenting env values.
+
+### 2026-02-24 — Pharmacy: voiding completed dispensations restores stock
+- **Change:** Added `PharmacyInventoryService::voidCompletedDispensation()` and Filament UI action to void a completed dispensation.
+- **Why:** Mistakes happen; voiding must create compensating movements (type `return`) and restore batch on-hand without manual DB edits.
+- **Tests added:** `tests/Feature/PharmacyInventoryTest.php`.

@@ -273,6 +273,65 @@ final class PharmacyInventoryService
         }, 3);
     }
 
+    /**
+     * Void (cancel) a completed dispensation by returning stock to the batches used.
+     *
+     * This is intended for corrections (wrong patient / wrong item). It writes compensating
+     * stock movements of type "return" and sets status to "cancelled".
+     */
+    public function voidCompletedDispensation(
+        Dispensation $dispensation,
+        ?string $performedBy = null,
+        ?\DateTimeInterface $occurredAt = null,
+        ?string $reason = null,
+    ): Dispensation {
+        $occurredAt = $occurredAt ?? now();
+
+        return DB::transaction(function () use ($dispensation, $performedBy, $occurredAt, $reason) {
+            $dispensation = Dispensation::query()->whereKey($dispensation->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($dispensation->status === 'cancelled') {
+                return $dispensation->load('items');
+            }
+
+            if ($dispensation->status !== 'completed') {
+                throw new \RuntimeException('Only completed dispensations can be voided.');
+            }
+
+            $items = $dispensation->items()->get();
+            if ($items->isEmpty()) {
+                throw new \RuntimeException('Completed dispensation has no items.');
+            }
+
+            foreach ($items as $item) {
+                if (! $item->drug_batch_id) {
+                    throw new \RuntimeException('Cannot void: dispensation item missing batch allocation.');
+                }
+
+                $batch = DrugBatch::query()->whereKey($item->drug_batch_id)->lockForUpdate()->firstOrFail();
+
+                $this->addToBatch(
+                    batch: $batch,
+                    quantity: (int) $item->quantity,
+                    occurredAt: $occurredAt,
+                    performedBy: $performedBy,
+                    referenceType: Dispensation::class,
+                    referenceId: $dispensation->getKey(),
+                    notes: $reason,
+                );
+            }
+
+            $dispensation->status = 'cancelled';
+            $dispensation->notes = trim(implode("\n", array_filter([
+                $dispensation->notes,
+                $reason ? ('VOID: '.$reason) : null,
+            ])));
+            $dispensation->save();
+
+            return $dispensation->refresh()->load('items');
+        }, 3);
+    }
+
     private function deductFromBatch(
         DrugBatch $batch,
         int $quantity,
@@ -299,6 +358,35 @@ final class PharmacyInventoryService
             'drug_batch_id' => $batch->getKey(),
             'type' => 'dispense',
             'quantity' => -1 * $quantity,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'performed_by' => $performedBy,
+            'occurred_at' => $occurredAt,
+            'notes' => $notes,
+        ]);
+    }
+
+    private function addToBatch(
+        DrugBatch $batch,
+        int $quantity,
+        \DateTimeInterface $occurredAt,
+        ?string $performedBy,
+        string $referenceType,
+        string $referenceId,
+        ?string $notes,
+    ): void {
+        if ($quantity <= 0) {
+            throw new \InvalidArgumentException('Add quantity must be greater than zero.');
+        }
+
+        $batch->quantity_on_hand = (int) $batch->quantity_on_hand + $quantity;
+        $batch->save();
+
+        StockMovement::create([
+            'drug_id' => $batch->drug_id,
+            'drug_batch_id' => $batch->getKey(),
+            'type' => 'return',
+            'quantity' => $quantity,
             'reference_type' => $referenceType,
             'reference_id' => $referenceId,
             'performed_by' => $performedBy,
