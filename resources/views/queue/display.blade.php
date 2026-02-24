@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Queue Display — {{ $department->name }} — {{ config('app.name') }}</title>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
+</head>
+<body class="min-h-screen bg-gray-950 text-gray-100 p-4">
+    <livewire:queue.display :department="$department" />
+
+    @livewireScripts
+</body>
+</html>

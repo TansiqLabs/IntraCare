@@ -85,3 +85,19 @@ _None yet._
 - **Root cause:** Format/extension mismatch in `app/Console/Commands/DatabaseBackup.php`.
 - **Fix summary:** Removed `-Fc` and now produces **plain SQL piped to gzip**, consistent with `.sql.gz`.
 - **Verification:** Ran `php artisan db:backup` and confirmed file created under `BACKUP_PATH/database/2026/February/`.
+
+### BUG-20260224-007 — Default welcome page used external font CDN
+- **Severity:** Medium
+- **Module:** UI / Offline-first
+- **Environment:** local/prod
+- **Symptoms:** `resources/views/welcome.blade.php` referenced `https://fonts.bunny.net` which breaks offline runtime if the page is accessed.
+- **Fix summary:** Replaced the welcome page with an offline-safe landing page using only local Vite assets.
+
+### BUG-20260224-008 — Queue display redirected to setup
+- **Severity:** Medium
+- **Module:** Queue / Display
+- **Environment:** local/testing
+- **Symptoms:** `/queue/display/{department}` returned 302 redirect to `/setup` when no users existed.
+- **Root cause:** Global `EnsureInstalled` middleware only exempted `setup.*` routes.
+- **Fix summary:** Exempted `queue.display` route from install redirect in `app/Http/Middleware/EnsureInstalled.php`.
+- **Tests added:** `tests/Feature/QueueDisplayTest.php`.

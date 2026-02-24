@@ -23,6 +23,11 @@ class EnsureInstalled
             return $next($request);
         }
 
+        // Public LAN display routes (no auth) should be accessible even before installation.
+        if ($request->routeIs('queue.display')) {
+            return $next($request);
+        }
+
         // During first install (before migrations) and during some test setups,
         // the users table may not exist yet. Don't hard-fail requests.
         if (! Schema::hasTable('users')) {

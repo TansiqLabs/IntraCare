@@ -111,6 +111,12 @@
 - **Status Flow**: Waiting → In-Progress → Completed / No-Show.
 - **Counters**: Multiple serving counters per department.
 
+**Implemented (Session 3):**
+- DB tables: `queue_departments`, `queue_counters`, `queue_daily_sequences`, `queue_tickets`.
+- Concurrency-safe token issuing service: `App\Services\Queue\QueueTokenService` (row locking per department+day).
+- Admin UI (Filament resources): Queue Departments / Counters / Tickets with actions (Issue/Call/Serve/No-show).
+- Public LAN display page (Livewire polling): `/queue/display/{DEPT_CODE}` (e.g., `/queue/display/OPD`).
+
 ### 4.4 Pharmacy
 - Drug master list with generic name, brand, formulation, strength.
 - Inventory management with batch tracking.
