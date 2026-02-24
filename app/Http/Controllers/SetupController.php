@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password;
 
@@ -27,6 +28,9 @@ class SetupController extends Controller
 
     /**
      * Process the setup: create admin account, seed roles.
+     *
+     * Uses an atomic lock to prevent concurrent requests from creating
+     * duplicate admin accounts (race condition on first install).
      */
     public function store(Request $request)
     {
@@ -42,52 +46,69 @@ class SetupController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        // Update app name (skip touching .env in tests)
-        if (! app()->environment('testing')) {
-            $this->updateEnv('APP_NAME', $validated['hospital_name']);
+        // Acquire an atomic lock so only one setup request can proceed.
+        $lock = Cache::lock('intracare.setup', 30);
+
+        if (! $lock->get()) {
+            return redirect()->route('setup.index')
+                ->withErrors(['email' => __('Setup is already in progress. Please wait.')]);
         }
 
-        // Seed roles and permissions
-        if (app()->environment('testing')) {
-            (new \Database\Seeders\RolesAndPermissionsSeeder())->run();
-        } else {
-            Artisan::call('db:seed', [
-                '--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder',
-                '--force' => true,
-            ]);
+        try {
+            // Double-check inside the lock — another request may have completed setup.
+            if (User::count() > 0) {
+                return redirect('/admin');
+            }
+
+            // Update app name (skip touching .env in tests)
+            if (! app()->environment('testing')) {
+                $this->updateEnv('APP_NAME', $validated['hospital_name']);
+            }
+
+            // Seed roles and permissions
+            if (app()->environment('testing')) {
+                (new \Database\Seeders\RolesAndPermissionsSeeder())->run();
+            } else {
+                Artisan::call('db:seed', [
+                    '--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder',
+                    '--force' => true,
+                ]);
+            }
+
+            // Create admin user inside a transaction to avoid partial state.
+            $admin = DB::transaction(function () use ($validated) {
+                // NOTE: Do NOT wrap in Hash::make() — the User model's 'hashed' cast
+                // on the password attribute already handles hashing automatically.
+                $admin = User::create([
+                    'employee_id' => 'EMP-0001',
+                    'name' => $validated['name'],
+                    'email' => $validated['email'],
+                    'password' => $validated['password'],
+                    'is_active' => true,
+                ]);
+
+                $admin->forceFill(['email_verified_at' => now()])->save();
+
+                $admin->assignRole('Admin');
+
+                return $admin;
+            });
+
+            // Create storage symlink (skip in tests)
+            if (! app()->environment('testing')) {
+                Artisan::call('storage:link');
+            }
+
+            // Clear installation cache
+            cache()->forget('intracare.installed');
+
+            // Log the admin in
+            auth()->login($admin);
+
+            return redirect('/admin')->with('success', __('setup.complete'));
+        } finally {
+            $lock->release();
         }
-
-        // Create admin user inside a transaction to avoid partial state.
-        $admin = DB::transaction(function () use ($validated) {
-            // NOTE: Do NOT wrap in Hash::make() — the User model's 'hashed' cast
-            // on the password attribute already handles hashing automatically.
-            $admin = User::create([
-                'employee_id' => 'EMP-0001',
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $validated['password'],
-                'is_active' => true,
-            ]);
-
-            $admin->forceFill(['email_verified_at' => now()])->save();
-
-            $admin->assignRole('Admin');
-
-            return $admin;
-        });
-
-        // Create storage symlink (skip in tests)
-        if (! app()->environment('testing')) {
-            Artisan::call('storage:link');
-        }
-
-        // Clear installation cache
-        cache()->forget('intracare.installed');
-
-        // Log the admin in
-        auth()->login($admin);
-
-        return redirect('/admin')->with('success', __('setup.complete'));
     }
 
     /**

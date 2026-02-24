@@ -15,7 +15,7 @@ class EditQueueTicket extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            // Delete disabled — tickets are historical records tied to queue audit trail.
         ];
     }
 }

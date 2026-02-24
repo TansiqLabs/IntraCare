@@ -6,13 +6,14 @@ namespace App\Models;
 
 use App\Enums\Gender;
 use App\Enums\ParameterFieldType;
+use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LabTestParameter extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
 
     protected $fillable = [
         'lab_test_id',

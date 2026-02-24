@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\DispensationResource\Pages;
 
+use App\Enums\DispensationStatus;
 use App\Filament\Resources\DispensationResource;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -13,7 +14,7 @@ class CreateDispensation extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['status'] = 'draft';
+        $data['status'] = DispensationStatus::Draft;
         $data['dispensed_at'] = null;
         $data['dispensed_by'] = null;
 

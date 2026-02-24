@@ -117,7 +117,12 @@ class QueueTicketResource extends Resource
                     ->form([
                         Forms\Components\Select::make('queue_counter_id')
                             ->label('Counter')
-                            ->options(fn () => QueueCounter::query()->orderBy('code')->pluck('code', 'id')->all())
+                            ->options(fn (QueueTicket $record) => QueueCounter::query()
+                                ->where('queue_department_id', $record->queue_department_id)
+                                ->where('is_active', true)
+                                ->orderBy('code')
+                                ->pluck('code', 'id')
+                                ->all())
                             ->nullable()
                             ->helperText('Optional: select a counter for this ticket.'),
                     ])

@@ -14,10 +14,10 @@ enum QueueTicketStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Waiting => 'Waiting',
-            self::Called => 'Called',
-            self::Served => 'Served',
-            self::NoShow => 'No-show',
+            self::Waiting => __('Waiting'),
+            self::Called => __('Called'),
+            self::Served => __('Served'),
+            self::NoShow => __('No-show'),
         };
     }
 

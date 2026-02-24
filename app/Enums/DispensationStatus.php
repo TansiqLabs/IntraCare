@@ -13,9 +13,9 @@ enum DispensationStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Draft => 'Draft',
-            self::Completed => 'Completed',
-            self::Cancelled => 'Cancelled',
+            self::Draft => __('Draft'),
+            self::Completed => __('Completed'),
+            self::Cancelled => __('Cancelled'),
         };
     }
 

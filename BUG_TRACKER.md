@@ -570,3 +570,160 @@ _None yet._
 - **Fix summary:** Created migration that adds explicit indexes on all FK columns across 20+ tables, with idempotent checks to skip if already present.
 - **Files:** `database/migrations/2026_02_24_140002_add_missing_foreign_key_indexes.php` (new)
 - **Status:** Fixed
+
+---
+
+## Bugs Found in Audit Round 2
+
+### BUG-20260224-067 — DrugResource eager-load sum includes expired/inactive batches
+- **Severity:** High
+- **Module:** Pharmacy
+- **Symptoms:** The Drug listing table shows inflated stock-on-hand numbers because the eager-loaded `withSum('batches', 'quantity_on_hand')` query sums ALL batches, including expired and inactive ones. This contradicts the fix in BUG-052 which correctly filters the `Drug::getTotalOnHandAttribute()` accessor.
+- **Root cause:** `DrugResource::table()` used an unfiltered `->withSum('batches', 'quantity_on_hand')`. The table column prefers the eager-loaded value over the model accessor, so the incorrect sum was displayed.
+- **Fix summary:** Replaced the unfiltered `withSum` with a subquery-based `withSum` that applies the same filters as the model accessor: `is_active = true`, `expiry_date IS NULL OR expiry_date > now()`.
+- **Files:** `app/Filament/Resources/DrugResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-068 — CreateDispensation hardcodes string status instead of enum
+- **Severity:** Medium
+- **Module:** Pharmacy
+- **Symptoms:** `CreateDispensation::mutateFormDataBeforeCreate()` sets `$data['status'] = 'draft'` as a raw string. While Laravel's enum cast can accept strings, this bypasses type safety and could cause `===` comparison failures with `DispensationStatus::Draft`.
+- **Root cause:** The code was written before enum casts were introduced in BUG-029 and was not updated.
+- **Fix summary:** Changed `$data['status'] = 'draft'` to `$data['status'] = DispensationStatus::Draft` and added the missing `use App\Enums\DispensationStatus` import.
+- **Files:** `app/Filament/Resources/DispensationResource/Pages/CreateDispensation.php`
+- **Status:** Fixed
+
+### BUG-20260224-069 — QueueDepartmentResource allows dangerous bulk delete
+- **Severity:** High
+- **Module:** Queue
+- **Symptoms:** The QueueDepartment table exposes a bulk delete action. Deleting departments that have associated counters, tickets, and daily sequences causes foreign key violations and orphaned records. BUG-059 removed bulk delete from other resources but missed this one.
+- **Root cause:** `DeleteBulkAction` was left in the `bulkActions` array.
+- **Fix summary:** Replaced the bulk actions group with an empty `->bulkActions([])`.
+- **Files:** `app/Filament/Resources/QueueDepartmentResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-070 — QueueCounterResource allows dangerous bulk delete
+- **Severity:** High
+- **Module:** Queue
+- **Symptoms:** Same as BUG-069 but for queue counters. Bulk deleting counters with active tickets or history breaks the queue system.
+- **Root cause:** `DeleteBulkAction` was left in the `bulkActions` array.
+- **Fix summary:** Replaced the bulk actions group with an empty `->bulkActions([])`.
+- **Files:** `app/Filament/Resources/QueueCounterResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-071 — EditDrugBatch allows deleting batches with stock movement history
+- **Severity:** Critical
+- **Module:** Pharmacy
+- **Symptoms:** The DrugBatch edit page exposes a delete action with no guard. Deleting a batch that has stock movement records would destroy audit trails and make stock history inconsistent. This is especially dangerous for batches that have been dispensed to patients.
+- **Root cause:** `Actions\DeleteAction::make()` was present without any visibility or safety checks.
+- **Fix summary:** Added `->visible()` check that only shows delete when the batch has zero `StockMovement` records. Added `->before()` callback with `abort_if` as a server-side safety net.
+- **Files:** `app/Filament/Resources/DrugBatchResource/Pages/EditDrugBatch.php`
+- **Status:** Fixed
+
+### BUG-20260224-072 — EditDrug allows deleting drugs with batches/movements
+- **Severity:** Critical
+- **Module:** Pharmacy
+- **Symptoms:** The Drug edit page allows deleting a drug that has associated batches, stock movements, and dispensation history. This would cascade-delete or orphan critical pharmacy records.
+- **Root cause:** `Actions\DeleteAction::make()` was unguarded.
+- **Fix summary:** Added `->visible()` check that only shows delete when the drug has zero `DrugBatch` records. Added `->before()` callback with `abort_if` safety.
+- **Files:** `app/Filament/Resources/DrugResource/Pages/EditDrug.php`
+- **Status:** Fixed
+
+### BUG-20260224-073 — EditQueueTicket still has delete action (contradicts BUG-059)
+- **Severity:** High
+- **Module:** Queue
+- **Symptoms:** BUG-059 removed `DeleteBulkAction` from `QueueTicketResource`, but the individual `DeleteAction` on the edit page was not removed. Queue tickets are historical records tied to the audit trail and should never be deleted — they represent patient visit queue history.
+- **Root cause:** Only the bulk action was removed in BUG-059; the individual edit-page delete was missed.
+- **Fix summary:** Removed `Actions\DeleteAction::make()` entirely from `getHeaderActions()`, leaving only the empty array.
+- **Files:** `app/Filament/Resources/QueueTicketResource/Pages/EditQueueTicket.php`
+- **Status:** Fixed
+
+### BUG-20260224-074 — EditQueueDepartment allows delete without checking children
+- **Severity:** High
+- **Module:** Queue
+- **Symptoms:** Deleting a queue department that has associated queue counters or tickets causes FK constraint violations and orphaned records. No guard was present.
+- **Root cause:** `Actions\DeleteAction::make()` had no visibility/safety checks.
+- **Fix summary:** Added `->visible()` check requiring zero `QueueTicket` records for the department. Added `->before()` abort safety.
+- **Files:** `app/Filament/Resources/QueueDepartmentResource/Pages/EditQueueDepartment.php`
+- **Status:** Fixed
+
+### BUG-20260224-075 — EditQueueCounter allows delete without checking children
+- **Severity:** High
+- **Module:** Queue
+- **Symptoms:** Deleting a queue counter that has been referenced in ticket call/serve events causes FK constraint violations. No guard was present.
+- **Root cause:** `Actions\DeleteAction::make()` had no visibility/safety checks.
+- **Fix summary:** Added `->visible()` check requiring zero `QueueTicket` records for the counter. Added `->before()` abort safety.
+- **Files:** `app/Filament/Resources/QueueCounterResource/Pages/EditQueueCounter.php`
+- **Status:** Fixed
+
+### BUG-20260224-076 — PatientContact missing Auditable trait (PHI data)
+- **Severity:** High
+- **Module:** Patient EHR / Compliance
+- **Symptoms:** `PatientContact` stores emergency contact information for patients (names, phone numbers, relationships). This is PHI-adjacent data that per HIPAA-inspired compliance rules (ai-context.md §3.5) must be audit-logged. BUG-037 added Auditable to `PatientAllergy` and `PatientChronicCondition` but missed `PatientContact`.
+- **Root cause:** Model was overlooked during the BUG-037 audit fix.
+- **Fix summary:** Added `use App\Traits\Auditable` import and `use Auditable` trait to `PatientContact`.
+- **Files:** `app/Models/PatientContact.php`
+- **Status:** Fixed
+
+### BUG-20260224-077 — DispensationItem missing Auditable trait (financial records)
+- **Severity:** High
+- **Module:** Pharmacy / Compliance
+- **Symptoms:** `DispensationItem` records which drugs were dispensed, at what price, and in what quantity. Changes to these records affect financial reconciliation. Without Auditable, modifications (quantity changes, price edits) go unlogged.
+- **Root cause:** Model was not included in earlier audit compliance sweeps.
+- **Fix summary:** Added `use Auditable` trait and import to `DispensationItem`.
+- **Files:** `app/Models/DispensationItem.php`
+- **Status:** Fixed
+
+### BUG-20260224-078 — InvoiceItem missing Auditable trait (financial records)
+- **Severity:** High
+- **Module:** Billing / Compliance
+- **Symptoms:** `InvoiceItem` records billing line items (service descriptions, amounts, quantities). Changes to invoice items directly affect financial records. Without Auditable, edits to amounts/descriptions are not tracked.
+- **Root cause:** Model was not included in earlier audit compliance sweeps.
+- **Fix summary:** Added `use Auditable` trait and import to `InvoiceItem`.
+- **Files:** `app/Models/InvoiceItem.php`
+- **Status:** Fixed
+
+### BUG-20260224-079 — LabTestCatalog missing Auditable trait (clinical config)
+- **Severity:** Medium
+- **Module:** Lab / Compliance
+- **Symptoms:** `LabTestCatalog` defines lab tests, their costs, TAT, and sample requirements. Changes to test definitions (especially costs or sample types) affect clinical workflows and billing. Without Auditable, such configuration changes are invisible.
+- **Root cause:** Not included in earlier audit sweeps.
+- **Fix summary:** Added `use Auditable` trait and import to `LabTestCatalog`.
+- **Files:** `app/Models/LabTestCatalog.php`
+- **Status:** Fixed
+
+### BUG-20260224-080 — LabTestParameter missing Auditable trait (clinical config)
+- **Severity:** High
+- **Module:** Lab / Compliance
+- **Symptoms:** `LabTestParameter` defines normal ranges and reference values for lab results. If a normal range is modified (e.g., changing a glucose threshold), this directly affects clinical interpretation. Without Auditable, such changes are untraceable — a serious clinical risk.
+- **Root cause:** Not included in earlier audit sweeps.
+- **Fix summary:** Added `use Auditable` trait and import to `LabTestParameter`.
+- **Files:** `app/Models/LabTestParameter.php`
+- **Status:** Fixed
+
+### BUG-20260224-081 — QueueTicket call action shows counters from all departments
+- **Severity:** Medium
+- **Module:** Queue
+- **Symptoms:** When calling a queue ticket, the counter selection dropdown shows ALL active counters across all departments. A ticket for "Pharmacy Queue" would show counters from "OPD Queue," "Lab Queue," etc. This is confusing and error-prone — staff could accidentally call a patient to the wrong department's counter.
+- **Root cause:** The `Select` field for `queue_counter_id` in the Call action queried `QueueCounter::where('is_active', true)` without filtering by the ticket's `queue_department_id`.
+- **Fix summary:** Added `->where('queue_department_id', $record->queue_department_id)` to the counter query, and also ensured only active counters are shown.
+- **Files:** `app/Filament/Resources/QueueTicketResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-082 — Enum labels use hardcoded strings instead of __() for i18n
+- **Severity:** Medium
+- **Module:** Pharmacy / Queue / i18n
+- **Symptoms:** Three enum classes (`DispensationStatus`, `QueueTicketStatus`, `StockMovementType`) return hardcoded English strings in their `getLabel()` methods instead of using the `__()` translation helper. Per project rules (ai-context.md §3.6), all user-facing strings must go through `__()` or `trans()`.
+- **Root cause:** Enums were written with literal English labels and not updated when the i18n rule was established.
+- **Fix summary:** Wrapped all `getLabel()` return values in `__()` calls across all three enum files.
+- **Files:** `app/Enums/DispensationStatus.php`, `app/Enums/QueueTicketStatus.php`, `app/Enums/StockMovementType.php`
+- **Status:** Fixed
+
+### BUG-20260224-083 — SetupController race condition allows duplicate admin creation
+- **Severity:** High
+- **Module:** Setup / Security
+- **Symptoms:** The `store()` method performs a non-atomic check (`User::count() > 0`) before creating the admin user. If two concurrent POST requests hit `/setup` simultaneously, both can pass the check and each create an admin user, resulting in duplicate admin accounts with identical `employee_id` values.
+- **Root cause:** No synchronization between the read (`User::count()`) and the write (`User::create()`). The existing `DB::transaction()` only wraps the user creation, not the preceding check.
+- **Fix summary:** Added `Cache::lock('intracare.setup', 30)` with a non-blocking `->get()` to acquire an atomic lock before proceeding. Added a second `User::count() > 0` check inside the lock (double-check locking pattern). The lock is released in a `finally` block to guarantee cleanup. Added `use Illuminate\Support\Facades\Cache` import.
+- **Files:** `app/Http/Controllers/SetupController.php`
+- **Status:** Fixed

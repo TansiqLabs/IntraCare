@@ -80,7 +80,16 @@ class DrugResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active'),
             ])
-            ->modifyQueryUsing(fn ($query) => $query->withSum('batches', 'quantity_on_hand'))
+            ->modifyQueryUsing(fn ($query) => $query->withSum(
+                ['batches as batches_sum_quantity_on_hand' => function ($q) {
+                    $q->where('is_active', true)
+                        ->where(function ($q2) {
+                            $q2->whereNull('expiry_date')
+                                ->orWhere('expiry_date', '>=', now()->toDateString());
+                        });
+                }],
+                'quantity_on_hand'
+            ))
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
