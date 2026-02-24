@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'title' => 'Patient',
+    'title_plural' => 'Patients',
+    'mr_number' => 'MR Number',
+    'first_name' => 'First Name',
+    'last_name' => 'Last Name',
+    'full_name' => 'Full Name',
+    'date_of_birth' => 'Date of Birth',
+    'gender' => 'Gender',
+    'blood_group' => 'Blood Group',
+    'cnic' => 'CNIC / National ID',
+    'phone' => 'Phone',
+    'email' => 'Email',
+    'address' => 'Address',
+    'city' => 'City',
+    'photo' => 'Photo',
+    'registered_by' => 'Registered By',
+    'emergency_contact' => 'Emergency Contact',
+    'allergies' => 'Allergies',
+    'chronic_conditions' => 'Chronic Conditions',
+    'medical_history' => 'Medical History',
+    'visits' => 'Visits',
+];

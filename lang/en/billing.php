@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'title' => 'Invoice',
+    'title_plural' => 'Invoices',
+    'invoice_number' => 'Invoice Number',
+    'invoice_type' => 'Invoice Type',
+    'subtotal' => 'Subtotal',
+    'discount' => 'Discount',
+    'tax' => 'Tax',
+    'total' => 'Total',
+    'paid' => 'Paid',
+    'balance' => 'Balance',
+    'status' => 'Status',
+    'created_by' => 'Created By',
+    'items' => 'Items',
+    'description' => 'Description',
+    'quantity' => 'Quantity',
+    'unit_price' => 'Unit Price',
+    'payment' => 'Payment',
+    'payments' => 'Payments',
+    'amount' => 'Amount',
+    'method' => 'Payment Method',
+    'reference_number' => 'Reference Number',
+    'received_by' => 'Received By',
+    'paid_at' => 'Paid At',
+];
