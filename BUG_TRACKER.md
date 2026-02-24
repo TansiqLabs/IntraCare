@@ -101,3 +101,25 @@ _None yet._
 - **Root cause:** Global `EnsureInstalled` middleware only exempted `setup.*` routes.
 - **Fix summary:** Exempted `queue.display` route from install redirect in `app/Http/Middleware/EnsureInstalled.php`.
 - **Tests added:** `tests/Feature/QueueDisplayTest.php`.
+
+### BUG-20260224-009 — Tailwind scanned cached Blade views (non-deterministic builds)
+- **Severity:** Low
+- **Module:** UI / Build
+- **Environment:** local
+- **Symptoms:** CSS output could vary/bloat because Tailwind was scanning `storage/framework/views` (compiled, runtime-generated Blade cache).
+- **Root cause:** `resources/css/app.css` included `@source '../../storage/framework/views/*.php';`.
+- **Fix summary:** Removed the cached-views `@source` and added a guard test to prevent external URLs from being introduced into runtime Blade/JS assets.
+- **Tests added:** `tests/Feature/OfflineExternalAssetsTest.php`.
+
+### BUG-20260224-010 — Install-check cache could become stale after DB reset
+- **Severity:** Medium
+- **Module:** Setup / Middleware
+- **Environment:** testing/local
+- **Symptoms:** App could incorrectly treat the system as installed (redirecting `/` to `/admin`) even when there were actually no users.
+- **Root cause:** `EnsureInstalled` cached `intracare.installed=true` for 1 hour and didn’t re-validate against the DB; cache could survive across DB refreshes/tests.
+- **Fix summary:** If cached value is `true`, re-check `User::exists()` and clear the cache if it’s stale.
+- **Verification:** `php artisan test` passes; caching (`config:cache`, `route:cache`, `view:cache`) no longer breaks feature tests.
+
+### 2026-02-24 — Ops: `.env.example` made offline-first by default
+- **Change:** Updated `.env.example` defaults to boot without Redis/Meilisearch and without requiring an absolute `BACKUP_PATH`.
+- **Why:** Fresh installs should run on a single machine offline; Redis/Meilisearch remain optional and can be enabled by uncommenting env values.

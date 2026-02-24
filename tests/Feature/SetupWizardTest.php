@@ -26,7 +26,12 @@ final class SetupWizardTest extends TestCase
 
     public function test_setup_post_creates_admin_and_redirects_to_admin(): void
     {
-        $response = $this->post('/setup', [
+        $token = 'test-csrf-token';
+
+        $response = $this
+            ->withSession(['_token' => $token])
+            ->post('/setup', [
+            '_token' => $token,
             'hospital_name' => 'IntraCare HMS',
             'name' => 'System Administrator',
             'email' => 'admin@example.test',
