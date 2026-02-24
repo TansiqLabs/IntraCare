@@ -1,0 +1,57 @@
+name: "Bug report"
+description: "Report something that is broken"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please **do not include PHI/PII**.
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: "Release tag or commit hash (if known)"
+      placeholder: "e.g., 02c777c"
+    validations:
+      required: false
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: "Numbered steps so we can reproduce the bug"
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: "Paths or sanitized snippets only (no PHI)"
+    validations:
+      required: false

@@ -1,10 +1,21 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "tansiqlabs/intracare",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "IntraCare HMS — an on-premise, offline-first Hospital Management System (Laravel + Filament + PostgreSQL).",
+    "keywords": ["hms", "hospital", "hospital-management", "laravel", "filament", "postgresql", "offline-first", "lan"],
     "license": "MIT",
+    "homepage": "https://tansiqlabs.com",
+    "support": {
+        "email": "info@tansiqlabs.com",
+        "issues": "https://github.com/TansiqLabs/IntraCare/issues"
+    },
+    "authors": [
+        {
+            "name": "Tansiq Labs",
+            "homepage": "https://tansiqlabs.com"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "bezhansalleh/filament-shield": "^3.3",
@@ -44,6 +55,13 @@
             "@php artisan migrate --force",
             "npm install",
             "npm run build"
+        ],
+        "app:update": [
+            "composer install --optimize-autoloader --no-dev",
+            "@php artisan migrate --force",
+            "npm install",
+            "npm run build",
+            "@php artisan optimize"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",

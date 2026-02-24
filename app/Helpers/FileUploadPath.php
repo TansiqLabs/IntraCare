@@ -2,38 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Traits;
+namespace App\Helpers;
 
 use Illuminate\Support\Carbon;
 
 /**
- * Generates WordPress-style year/month upload paths.
+ * Static helper for generating WordPress-style year/month upload paths.
  *
- * Example: uploads/2026/February/filename.jpg
- *
- * Usage in Filament FileUpload:
- *   FileUpload::make('photo_path')
- *       ->directory(FileUploadPath::generate('patients'))
- *
- * Or in a Model:
- *   use HasFileUploadPath;
- *   $path = $this->uploadPath('patients');
- */
-trait HasFileUploadPath
-{
-    /**
-     * Generate a year/month upload directory path.
-     *
-     * @param  string  $prefix  Subfolder prefix (e.g., 'patients', 'lab-reports')
-     */
-    public function uploadPath(string $prefix = 'uploads'): string
-    {
-        return FileUploadPath::generate($prefix);
-    }
-}
-
-/**
- * Static helper for generating year/month upload paths.
+ * Example: uploads/2026/February/
  */
 class FileUploadPath
 {

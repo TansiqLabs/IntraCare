@@ -338,4 +338,71 @@ IntraCare/
 
 ## License
 
-Proprietary — All rights reserved.
+MIT License © 2026 **Tansiq Labs** (https://tansiqlabs.com)
+
+See [`LICENSE`](./LICENSE).
+
+---
+
+## 🚀 Easy Setup (for non-technical installs)
+
+If you just want to get IntraCare running on a single machine (offline / LAN), this is the shortest path:
+
+1. Install the **Prerequisites** (PHP, PostgreSQL, Node.js, Composer)
+2. In the project folder, run the bundled installer script:
+
+```bash
+composer run setup
+```
+
+Or (operator-friendly wrapper):
+
+```bash
+./bin/setup.sh
+```
+
+Then open:
+
+```
+http://localhost:8000/setup
+```
+
+### Updating (keeping your data)
+
+Before updating, take a backup (optional but strongly recommended):
+
+```bash
+php artisan db:backup
+```
+
+Operator shortcut:
+
+```bash
+./bin/update.sh --backup
+```
+
+If you installed with Git:
+
+```bash
+git pull
+composer install --optimize-autoloader --no-dev
+php artisan migrate --force
+npm install
+npm run build
+php artisan optimize
+```
+
+> Tip: see [`docs/UPDATE.md`](./docs/UPDATE.md) for a copy/paste checklist.
+
+---
+
+## Contributing
+
+Contributions are welcome! Please read:
+
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md)
+
+## Security
+
+If you discover a security issue, please follow [`SECURITY.md`](./SECURITY.md) (do **not** open a public issue).
