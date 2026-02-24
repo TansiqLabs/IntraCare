@@ -6,7 +6,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
@@ -17,7 +16,8 @@ class AdminUserSeeder extends Seeder
             [
                 'employee_id' => 'EMP-0001',
                 'name' => 'System Administrator',
-                'password' => Hash::make('password'),
+                // Do NOT wrap in Hash::make() — User model's 'hashed' cast handles it.
+                'password' => 'password',
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]

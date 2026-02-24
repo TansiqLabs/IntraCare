@@ -42,6 +42,11 @@ class Drug extends Model
         return $this->hasMany(StockMovement::class);
     }
 
+    public function dispensationItems(): HasMany
+    {
+        return $this->hasMany(DispensationItem::class);
+    }
+
     public function getDisplayNameAttribute(): string
     {
         $parts = [trim((string) $this->generic_name)];

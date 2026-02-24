@@ -48,7 +48,9 @@ class LabTestParameter extends Model
     public function getNormalRangeFor(?string $gender, ?int $age = null): ?string
     {
         if ($age !== null && $age < 18) {
-            return $this->normal_range_child ?? $this->normal_range_male;
+            return $this->normal_range_child
+                ?? ($gender === 'female' ? $this->normal_range_female : null)
+                ?? $this->normal_range_male;
         }
 
         return match ($gender) {

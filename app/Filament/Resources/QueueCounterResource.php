@@ -36,7 +36,9 @@ class QueueCounterResource extends Resource
                         Forms\Components\TextInput::make('code')
                             ->required()
                             ->maxLength(20)
-                            ->regex('/^[A-Z0-9\-]+$/')
+                            ->unique(ignoreRecord: true)
+                            ->regex('/^[A-Za-z0-9\-]+$/')
+                            ->helperText('Uppercase code, e.g. C-1, OPD-1')
                             ->dehydrateStateUsing(fn ($state) => strtoupper((string) $state)),
                         Forms\Components\TextInput::make('floor')
                             ->numeric()

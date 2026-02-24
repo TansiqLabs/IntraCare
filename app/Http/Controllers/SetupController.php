@@ -97,7 +97,7 @@ class SetupController extends Controller
 
         if (str_contains($content, "{$key}=")) {
             $content = preg_replace(
-                "/^{$key}=.*/m",
+                "/^" . preg_quote($key, '/') . "=.*/m",
                 "{$key}={$escapedValue}",
                 $content
             );

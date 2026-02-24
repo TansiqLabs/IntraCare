@@ -65,13 +65,15 @@ class QueueTicketResource extends Resource
                 Tables\Columns\TextColumn::make('token_display')->label('Token')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('department.code')->label('Dept')->sortable(),
                 Tables\Columns\TextColumn::make('counter.code')->label('Counter')->toggleable(),
-                Tables\Columns\BadgeColumn::make('status')
-                    ->colors([
-                        'warning' => 'waiting',
-                        'info' => 'called',
-                        'success' => 'served',
-                        'danger' => 'no_show',
-                    ])
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'waiting' => 'warning',
+                        'called' => 'info',
+                        'served' => 'success',
+                        'no_show' => 'danger',
+                        default => 'gray',
+                    })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('token_date')->date()->sortable(),
                 Tables\Columns\TextColumn::make('token_number')->sortable(),

@@ -67,10 +67,25 @@ class DispensationResource extends Resource
                                     ->relationship('drug', 'generic_name')
                                     ->searchable()
                                     ->preload()
-                                    ->required(),
+                                    ->required()
+                                    ->reactive()
+                                    ->afterStateUpdated(fn (Forms\Set $set) => $set('drug_batch_id', null)),
                                 Forms\Components\Select::make('drug_batch_id')
                                     ->label('Batch (optional)')
-                                    ->relationship('batch', 'batch_number')
+                                    ->options(function (Forms\Get $get) {
+                                        $drugId = $get('drug_id');
+                                        if (! $drugId) {
+                                            return [];
+                                        }
+
+                                        return \App\Models\DrugBatch::query()
+                                            ->where('drug_id', $drugId)
+                                            ->where('is_active', true)
+                                            ->where('quantity_on_hand', '>', 0)
+                                            ->orderBy('expiry_date')
+                                            ->pluck('batch_number', 'id')
+                                            ->all();
+                                    })
                                     ->searchable()
                                     ->nullable()
                                     ->helperText('Leave empty to auto-allocate by FEFO when completing.'),
@@ -82,7 +97,17 @@ class DispensationResource extends Resource
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0)
-                                    ->helperText('Smallest currency unit (e.g. paisa). Leave 0 to use batch price.'),
+                                    ->helperText('Smallest currency unit (e.g. paisa). Leave 0 to use batch price.')
+                                    ->reactive(),
+                                Forms\Components\TextInput::make('line_total')
+                                    ->numeric()
+                                    ->default(0)
+                                    ->disabled()
+                                    ->dehydrated(true)
+                                    ->afterStateHydrated(function (Forms\Components\TextInput $component, Forms\Get $get) {
+                                        $component->state(($get('quantity') ?? 0) * ($get('unit_price') ?? 0));
+                                    })
+                                    ->helperText('Auto-calculated: quantity × unit_price'),
                                 Forms\Components\Textarea::make('notes')
                                     ->columnSpanFull()
                                     ->nullable(),

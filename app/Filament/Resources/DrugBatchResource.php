@@ -46,7 +46,9 @@ class DrugBatchResource extends Resource
                             ->numeric()
                             ->minValue(0)
                             ->default(0)
-                            ->helperText('For adjustments, prefer Stock Movements. This is editable for recovery.'),
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->helperText('Managed via Stock Movements. Use stock adjustment for corrections.'),
                         Forms\Components\TextInput::make('unit_cost')
                             ->numeric()
                             ->minValue(0)

@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class StockMovement extends Model
 {
@@ -45,5 +46,10 @@ class StockMovement extends Model
     public function performedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'performed_by');
+    }
+
+    public function reference(): MorphTo
+    {
+        return $this->morphTo();
     }
 }

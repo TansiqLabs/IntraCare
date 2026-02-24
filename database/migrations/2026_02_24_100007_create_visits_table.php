@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('examination_notes')->nullable();
             $table->text('plan')->nullable();
                 $table->json('vitals')->nullable(); // {bp, temp, pulse, spo2, weight, height, bmi}
-            $table->timestamp('visited_at');
+            $table->timestamp('visited_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

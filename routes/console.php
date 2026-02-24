@@ -25,6 +25,9 @@ Schedule::command('db:backup --keep=30')
 Schedule::command('auth:clear-resets')->weekly();
 
 // Scout sync (Meilisearch) - re-index patients every night
-Schedule::command('scout:import', ['App\\Models\\Patient'])
-    ->dailyAt('03:00')
-    ->withoutOverlapping();
+// Only runs when the Scout driver is set to meilisearch.
+if (config('scout.driver') === 'meilisearch') {
+    Schedule::command('scout:import', ['App\\Models\\Patient'])
+        ->dailyAt('03:00')
+        ->withoutOverlapping();
+}

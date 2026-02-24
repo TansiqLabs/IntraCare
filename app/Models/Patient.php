@@ -110,4 +110,14 @@ class Patient extends Model
     {
         return $this->hasMany(Invoice::class);
     }
+
+    public function dispensations(): HasMany
+    {
+        return $this->hasMany(Dispensation::class);
+    }
+
+    public function queueTickets(): HasMany
+    {
+        return $this->hasMany(QueueTicket::class);
+    }
 }

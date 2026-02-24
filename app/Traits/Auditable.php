@@ -45,11 +45,13 @@ trait Auditable
         });
 
         static::deleted(function (Model $model) {
-            $event = $model->isForceDeleting() ? 'force_deleted' : 'deleted';
+            $event = (method_exists($model, 'isForceDeleting') && $model->isForceDeleting())
+                ? 'force_deleted'
+                : 'deleted';
             static::logAudit($model, $event, $model->getAttributes(), []);
         });
 
-        if (method_exists(static::class, 'restored')) {
+        if (in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive(static::class))) {
             static::restored(function (Model $model) {
                 static::logAudit($model, 'restored', [], $model->getAttributes());
             });
