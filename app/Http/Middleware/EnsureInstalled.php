@@ -37,20 +37,9 @@ class EnsureInstalled
         }
 
         // Check if any user exists (cached for performance)
-        $installed = cache()->get('intracare.installed');
-
-        if ($installed === null) {
-            $installed = cache()->remember('intracare.installed', 3600, function (): bool {
-                return User::query()->exists();
-            });
-        }
-
-        // Safety: caches can become stale during DB refreshes/tests or manual truncates.
-        // Never allow a cached "installed=true" to bypass setup if there are actually no users.
-        if ($installed === true && ! User::query()->exists()) {
-            cache()->forget('intracare.installed');
-            $installed = false;
-        }
+        $installed = cache()->remember('intracare.installed', 3600, function (): bool {
+            return User::query()->exists();
+        });
 
         if (! $installed) {
             return redirect()->route('setup.index');

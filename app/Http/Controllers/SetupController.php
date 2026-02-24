@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 class SetupController extends Controller
@@ -58,11 +57,13 @@ class SetupController extends Controller
         }
 
         // Create admin user
+        // NOTE: Do NOT wrap in Hash::make() — the User model's 'hashed' cast
+        // on the password attribute already handles hashing automatically.
         $admin = User::create([
             'employee_id' => 'EMP-0001',
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password' => $validated['password'],
             'is_active' => true,
             'email_verified_at' => now(),
         ]);
