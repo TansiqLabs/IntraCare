@@ -425,3 +425,148 @@ _None yet._
 - **Fix summary:** Updated all 3 failing assertions to compare against enum instances (`DispensationStatus::Completed`, `StockMovementType::Receive`, etc.). Added enum imports.
 - **Files:** `tests/Feature/PharmacyInventoryTest.php`
 - **Status:** Fixed
+
+### BUG-20260224-048 — .env injection via setup wizard
+- **Severity:** Critical
+- **Module:** Setup
+- **Symptoms:** `SetupController::updateEnv()` wrote user-supplied values directly into `.env` without sanitising newlines, CR, or null-bytes. An attacker could inject arbitrary .env directives during initial setup.
+- **Fix summary:** `updateEnv()` now strips `\n`, `\r`, `\0` from values, and properly quotes them. Added `DB::transaction` around user creation. Added `throttle:5,1` to the POST `/setup` route.
+- **Files:** `app/Http/Controllers/SetupController.php`, `routes/web.php`
+- **Status:** Fixed
+
+### BUG-20260224-049 — UserFactory double-hashes passwords
+- **Severity:** Critical
+- **Module:** Tests / Auth
+- **Symptoms:** `UserFactory` wrapped password in `Hash::make()`, but the User model's `'hashed'` cast auto-hashes on assignment, producing a double-hashed password. Factory-created users could not log in.
+- **Fix summary:** Removed `Hash::make()` wrapper; factory now assigns plain `'password'` string.
+- **Files:** `database/factories/UserFactory.php`
+- **Status:** Fixed
+
+### BUG-20260224-050 — Password hashes leaked into audit logs
+- **Severity:** High
+- **Module:** Compliance / Audit
+- **Symptoms:** The `Auditable` trait logged all model attributes including `password` and `remember_token` into `audit_logs.old_values`/`new_values`. This is a HIPAA/security violation.
+- **Fix summary:** Added `auditExclude()` hook (overridable per model) and `resolveAuditExclusions()` helper that always excludes `['password', 'remember_token']`. All event handlers now filter excluded keys.
+- **Files:** `app/Traits/Auditable.php`
+- **Status:** Fixed
+
+### BUG-20260224-051 — Invoice status never transitions after payment
+- **Severity:** High
+- **Module:** Billing
+- **Symptoms:** `Payment::boot()` recalculated `paid`/`balance` but never updated `Invoice::status`. An invoice remained `Issued` even after full payment.
+- **Fix summary:** `recalculateInvoice()` now auto-transitions status to `Paid` (balance ≤ 0), `Partial` (partial payment), or `Issued` (no payments). Skips `Cancelled`/`Refunded` invoices.
+- **Files:** `app/Models/Payment.php`
+- **Tests:** `test_can_create_invoice_and_payment_and_audit_log_is_written` (updated assertions)
+- **Status:** Fixed
+
+### BUG-20260224-052 — Drug total_on_hand includes expired/inactive batches
+- **Severity:** High
+- **Module:** Pharmacy
+- **Symptoms:** `Drug::getTotalOnHandAttribute()` summed ALL batches including expired and inactive ones, showing inflated stock counts.
+- **Fix summary:** Filtered to only `is_active = true` AND non-expired batches. Also added `Auditable` trait and `scopeActive()`.
+- **Files:** `app/Models/Drug.php`, `app/Models/DrugBatch.php`
+- **Status:** Fixed
+
+### BUG-20260224-053 — LabOrderTest::sample() returns rejected sample
+- **Severity:** Medium
+- **Module:** Lab
+- **Symptoms:** `sample()` was a plain `hasOne()`, so when a sample was rejected and a new one collected, the relationship returned the oldest (rejected) sample instead of the current one.
+- **Fix summary:** Changed to `hasOne(LabSample::class)->latestOfMany()`.
+- **Files:** `app/Models/LabOrderTest.php`
+- **Status:** Fixed
+
+### BUG-20260224-054 — LabTestParameter::getNormalRangeFor() TypeError with Gender enum
+- **Severity:** Medium
+- **Module:** Lab
+- **Symptoms:** Passing a `Patient::gender` (a `Gender` enum) to `getNormalRangeFor(?string $gender)` caused a TypeError because the method expected a string.
+- **Fix summary:** Changed signature to `Gender|string|null $gender` with internal enum-to-value conversion. Added `scopeActive()`.
+- **Files:** `app/Models/LabTestParameter.php`
+- **Status:** Fixed
+
+### BUG-20260224-055 — LabTestCatalog hardcoded currency smallest_unit
+- **Severity:** Low
+- **Module:** Lab / Billing
+- **Symptoms:** `getFormattedCostAttribute()` divided by hardcoded `100`, which is incorrect for currencies with different subunit sizes (e.g. KWD = 1000).
+- **Fix summary:** Now uses `config('intracare.currency.smallest_unit', 100)` with division-by-zero guard.
+- **Files:** `app/Models/LabTestCatalog.php`
+- **Status:** Fixed
+
+### BUG-20260224-056 — QueueCounter missing scopeActive
+- **Severity:** Low
+- **Module:** Queue
+- **Symptoms:** No way to query only active counters; inactive counters could appear in dropdowns.
+- **Fix summary:** Added `scopeActive()` query scope.
+- **Files:** `app/Models/QueueCounter.php`
+- **Status:** Fixed
+
+### BUG-20260224-057 — Livewire Queue Display uses hardcoded status strings
+- **Severity:** Medium
+- **Module:** Queue
+- **Symptoms:** `getNowServingProperty` used `->whereIn('status', ['called'])` and `getWaitingProperty` used `->where('status', 'waiting')` — raw strings instead of `QueueTicketStatus` enums. With enum casts, these queries returned empty results.
+- **Fix summary:** Replaced with `QueueTicketStatus::Called` and `QueueTicketStatus::Waiting`. Added `abort_unless($department->is_active, 404)` guard in `mount()`.
+- **Files:** `app/Livewire/Queue/Display.php`
+- **Status:** Fixed
+
+### BUG-20260224-058 — No middleware to block deactivated users
+- **Severity:** High
+- **Module:** Auth / Security
+- **Symptoms:** After an admin deactivates a user (`is_active = false`), that user's existing session remains valid. They can continue using the system until their session expires.
+- **Fix summary:** Created `EnsureUserIsActive` middleware that checks `is_active` on every authenticated request. Logs out and redirects inactive users. Registered in `AdminPanelProvider->authMiddleware()`.
+- **Files:** `app/Http/Middleware/EnsureUserIsActive.php` (new), `app/Providers/Filament/AdminPanelProvider.php`
+- **Status:** Fixed
+
+### BUG-20260224-059 — Dangerous bulk delete actions on critical resources
+- **Severity:** High
+- **Module:** Pharmacy / Queue / Billing
+- **Symptoms:** `DeleteBulkAction` on `DispensationResource`, `DrugBatchResource`, `DrugResource`, and `QueueTicketResource` allowed mass-deleting records including completed dispensations and active inventory — corrupting stock history and audit trails.
+- **Fix summary:** Removed `DeleteBulkAction` from DrugBatch, Drug, and QueueTicket resources. Hidden in Dispensation resource (kept for potential draft cleanup). Added `canCreate(): false` to `StockMovementResource` to prevent manual creation via URL.
+- **Files:** `app/Filament/Resources/DispensationResource.php`, `app/Filament/Resources/DrugBatchResource.php`, `app/Filament/Resources/DrugResource.php`, `app/Filament/Resources/QueueTicketResource.php`, `app/Filament/Resources/StockMovementResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-060 — QueueTicketResource allows status change on edit
+- **Severity:** Medium
+- **Module:** Queue
+- **Symptoms:** The status field in QueueTicketResource's edit form was editable, allowing users to bypass the intended workflow actions (Call → Serve → No-show) and set arbitrary statuses.
+- **Fix summary:** Disabled the status field when editing an existing record (`->disabled(fn (?QueueTicket $record) => $record !== null)`).
+- **Files:** `app/Filament/Resources/QueueTicketResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-061 — No forceDelete protection on legally-required records
+- **Severity:** High
+- **Module:** Compliance / All
+- **Symptoms:** Patient, Visit, LabOrder, Invoice, and User models use SoftDeletes but had no guard against `forceDelete()`. A developer or rogue admin script could permanently destroy legally-required medical/financial records.
+- **Fix summary:** Added `static::forceDeleting()` guard in `booted()` on all 5 models that throws `RuntimeException` to prevent permanent deletion.
+- **Files:** `app/Models/Patient.php`, `app/Models/Visit.php`, `app/Models/LabOrder.php`, `app/Models/Invoice.php`, `app/Models/User.php`
+- **Status:** Fixed
+
+### BUG-20260224-062 — Missing PatientFactory and VisitFactory
+- **Severity:** Medium
+- **Module:** Tests
+- **Symptoms:** No factory existed for Patient or Visit models, forcing tests to manually create records with verbose `::create()` calls and making it impossible to use `Patient::factory()` or `Visit::factory()`.
+- **Fix summary:** Created `PatientFactory` (mr_number, first_name, last_name, date_of_birth, gender) and `VisitFactory` (patient_id, doctor_id, visit_number, visit_type, status, visited_at).
+- **Files:** `database/factories/PatientFactory.php` (new), `database/factories/VisitFactory.php` (new)
+- **Status:** Fixed
+
+### BUG-20260224-063 — BillingTest doesn't verify invoice recalculation
+- **Severity:** Medium
+- **Module:** Tests / Billing
+- **Symptoms:** `test_can_create_invoice_and_payment_and_audit_log_is_written` created a payment but never refreshed the invoice to check that `paid`, `balance`, and `status` were updated by `Payment::boot()`.
+- **Fix summary:** Added `$invoice->refresh()` and assertions for `paid = 5000`, `balance = 5000`, `status = InvoiceStatus::Partial`.
+- **Files:** `tests/Feature/BillingTest.php`
+- **Status:** Fixed
+
+### BUG-20260224-064 — Missing tests for existing-batch receive and expired-batch FEFO exclusion
+- **Severity:** Medium
+- **Module:** Tests / Pharmacy
+- **Symptoms:** No test coverage for: (a) calling `receiveToBatch()` on an already-existing batch number, (b) FEFO allocation skipping expired batches.
+- **Fix summary:** Added `test_receive_to_batch_adds_stock_to_existing_batch` and `test_fefo_skips_expired_batches` to `PharmacyInventoryTest`.
+- **Files:** `tests/Feature/PharmacyInventoryTest.php`
+- **Status:** Fixed
+
+### BUG-20260224-065 — Missing foreign key indexes (SQLite performance)
+- **Severity:** Low
+- **Module:** Database / Performance
+- **Symptoms:** PostgreSQL auto-creates indexes for foreign keys, but SQLite (used in dev/test) does not. Queries joining on FK columns performed full table scans on SQLite.
+- **Fix summary:** Created migration that adds explicit indexes on all FK columns across 20+ tables, with idempotent checks to skip if already present.
+- **Files:** `database/migrations/2026_02_24_140002_add_missing_foreign_key_indexes.php` (new)
+- **Status:** Fixed
