@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
 
-            $table->foreign('visit_id')->references('id')->on('visits')->cascadeOnDelete();
+            $table->foreign('visit_id')->references('id')->on('visits')->restrictOnDelete();
             $table->foreign('icd_code_id')->references('id')->on('icd_codes')->restrictOnDelete();
         });
     }

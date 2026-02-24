@@ -27,7 +27,7 @@ class EditQueueDepartment extends EditRecord
                             ->where('queue_department_id', $this->record->getKey())
                             ->exists(),
                         403,
-                        'Cannot delete a department that has tickets. Deactivate it instead.'
+                        __('Cannot delete a department that has tickets. Deactivate it instead.')
                     );
                 }),
         ];

@@ -25,6 +25,8 @@ class PatientAllergy extends Model
     {
         return [
             'severity' => AllergySeverity::class,
+            'allergen' => 'encrypted',
+            'notes' => 'encrypted',
         ];
     }
 

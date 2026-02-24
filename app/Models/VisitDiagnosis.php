@@ -25,6 +25,7 @@ class VisitDiagnosis extends Model
     {
         return [
             'diagnosis_type' => DiagnosisType::class,
+            'notes' => 'encrypted',
         ];
     }
 

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('instructions')->nullable();
             $table->timestamps();
 
-            $table->foreign('prescription_id')->references('id')->on('prescriptions')->cascadeOnDelete();
+            $table->foreign('prescription_id')->references('id')->on('prescriptions')->restrictOnDelete();
         });
     }
 

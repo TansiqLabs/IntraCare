@@ -119,12 +119,13 @@ class SetupController extends Controller
         $envPath = base_path('.env');
         $content = file_get_contents($envPath);
 
-        // Sanitize value: strip newlines and carriage returns to prevent .env injection.
-        $sanitized = str_replace(["\n", "\r", "\0"], '', $value);
+        // Sanitize value: strip newlines, carriage returns, null bytes, and
+        // characters that could cause variable interpolation or comments.
+        $sanitized = str_replace(["\n", "\r", "\0", '#', '$', '`'], '', $value);
 
         // Wrap in quotes if value has spaces or special characters
         $escapedValue = (str_contains($sanitized, ' ') || str_contains($sanitized, '"'))
-            ? '"' . addcslashes($sanitized, '"') . '"'
+            ? '"' . addcslashes($sanitized, '"\\') . '"'
             : $sanitized;
 
         if (str_contains($content, "{$key}=")) {
@@ -137,6 +138,6 @@ class SetupController extends Controller
             $content .= "\n{$key}={$escapedValue}\n";
         }
 
-        file_put_contents($envPath, $content);
+        file_put_contents($envPath, $content, LOCK_EX);
     }
 }

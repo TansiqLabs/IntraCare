@@ -19,8 +19,14 @@ class Invoice extends Model
 
     protected static function booted(): void
     {
+        static::deleting(function (Invoice $invoice) {
+            if ($invoice->payments()->exists()) {
+                throw new \RuntimeException(__('Cannot delete invoice with existing payments.'));
+            }
+        });
+
         static::forceDeleting(function (Invoice $model) {
-            throw new \RuntimeException('Force-deleting invoice records is prohibited.');
+            throw new \RuntimeException(__('Force-deleting invoice records is prohibited.'));
         });
     }
 

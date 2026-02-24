@@ -27,7 +27,7 @@ class EditQueueCounter extends EditRecord
                             ->where('queue_counter_id', $this->record->getKey())
                             ->exists(),
                         403,
-                        'Cannot delete a counter that has tickets. Deactivate it instead.'
+                        __('Cannot delete a counter that has tickets. Deactivate it instead.')
                     );
                 }),
         ];

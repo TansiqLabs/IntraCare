@@ -24,7 +24,7 @@ return new class extends Migration
 
             $table->index(['dispensation_id']);
 
-            $table->foreign('dispensation_id')->references('id')->on('dispensations')->cascadeOnDelete();
+            $table->foreign('dispensation_id')->references('id')->on('dispensations')->restrictOnDelete();
             $table->foreign('drug_id')->references('id')->on('drugs')->restrictOnDelete();
             $table->foreign('drug_batch_id')->references('id')->on('drug_batches')->nullOnDelete();
         });

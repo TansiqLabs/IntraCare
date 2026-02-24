@@ -25,6 +25,8 @@ class LabResult extends Model
     {
         return [
             'is_abnormal' => 'boolean',
+            'value' => 'encrypted',
+            'remarks' => 'encrypted',
         ];
     }
 

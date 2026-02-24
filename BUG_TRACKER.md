@@ -862,3 +862,430 @@ _None yet._
 - **Fix summary:** Documented as technical debt. Test coverage for these fixes should be added in a dedicated testing sprint.
 - **Files:** `tests/`
 - **Status:** Open — documented for future sprint
+
+---
+
+## Deep Audit — Session 3 (BUG-099 through BUG-145)
+
+### BUG-20260224-099 — Patient PHI fields stored unencrypted at rest
+- **Severity:** Critical
+- **Module:** Models / Patient
+- **Symptoms:** Patient model fields `cnic`, `phone`, `email`, `address` stored as plaintext in the database, violating ai-context.md §3.1 HIPAA-inspired at-rest encryption mandate.
+- **Root cause:** Encrypted casts were not added when the model was created.
+- **Fix summary:** Added `'encrypted'` casts to `cnic`, `phone`, `email`, `address` in Patient model. Changed migration column types from `string` to `text` for encryption compatibility.
+- **Files:** `app/Models/Patient.php`, `database/migrations/2026_02_24_150001_add_soft_deletes_and_fix_phi_columns.php`
+- **Status:** Fixed
+
+### BUG-20260224-100 — PatientContact PHI fields stored unencrypted
+- **Severity:** Critical
+- **Module:** Models / PatientContact
+- **Symptoms:** `name` and `phone` stored as plaintext.
+- **Root cause:** Missing encrypted casts.
+- **Fix summary:** Added `'encrypted'` casts. Widened columns to `text` in migration.
+- **Files:** `app/Models/PatientContact.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-101 — PatientAllergy PHI fields stored unencrypted
+- **Severity:** Critical
+- **Module:** Models / PatientAllergy
+- **Symptoms:** `allergen` and `notes` stored as plaintext.
+- **Root cause:** Missing encrypted casts.
+- **Fix summary:** Added `'encrypted'` casts. Widened `allergen` to `text` in migration.
+- **Files:** `app/Models/PatientAllergy.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-102 — PatientChronicCondition PHI fields stored unencrypted
+- **Severity:** Critical
+- **Module:** Models / PatientChronicCondition
+- **Symptoms:** `condition_name` and `notes` stored as plaintext.
+- **Root cause:** Missing encrypted casts.
+- **Fix summary:** Added `'encrypted'` casts. Widened `condition_name` to `text` in migration.
+- **Files:** `app/Models/PatientChronicCondition.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-103 — LabResult PHI fields stored unencrypted
+- **Severity:** Critical
+- **Module:** Models / LabResult
+- **Symptoms:** `value` and `remarks` stored as plaintext.
+- **Root cause:** Missing encrypted casts.
+- **Fix summary:** Added `'encrypted'` casts. Widened `value` to `text` in migration.
+- **Files:** `app/Models/LabResult.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-104 — Visit clinical notes stored unencrypted
+- **Severity:** Critical
+- **Module:** Models / Visit
+- **Symptoms:** `chief_complaint`, `examination_notes`, `plan` stored as plaintext; `vitals` cast as `array` not `encrypted:array`.
+- **Root cause:** Missing encrypted casts.
+- **Fix summary:** Added `'encrypted'` casts to text fields, changed `vitals` from `'array'` to `'encrypted:array'`.
+- **Files:** `app/Models/Visit.php`
+- **Status:** Fixed
+
+### BUG-20260224-105 — Prescription notes stored unencrypted + missing SoftDeletes
+- **Severity:** High
+- **Module:** Models / Prescription
+- **Symptoms:** `notes` stored as plaintext; model lacks SoftDeletes on a clinical record.
+- **Root cause:** Missing encrypted cast and SoftDeletes trait.
+- **Fix summary:** Added SoftDeletes trait + `'encrypted'` cast for `notes`.
+- **Files:** `app/Models/Prescription.php`, migration (softDeletes column)
+- **Status:** Fixed
+
+### BUG-20260224-106 — VisitDiagnosis notes stored unencrypted
+- **Severity:** High
+- **Module:** Models / VisitDiagnosis
+- **Symptoms:** `notes` stored as plaintext.
+- **Root cause:** Missing encrypted cast.
+- **Fix summary:** Added `'encrypted'` cast for `notes`.
+- **Files:** `app/Models/VisitDiagnosis.php`
+- **Status:** Fixed
+
+### BUG-20260224-107 — Dispensation model missing SoftDeletes
+- **Severity:** High
+- **Module:** Models / Dispensation
+- **Symptoms:** Hard-deleting dispensation records destroys pharmacy audit trail.
+- **Root cause:** SoftDeletes trait not applied.
+- **Fix summary:** Added SoftDeletes + forceDeleting guard in `booted()`.
+- **Files:** `app/Models/Dispensation.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-108 — Drug model missing SoftDeletes + deletion guard
+- **Severity:** High
+- **Module:** Models / Drug
+- **Symptoms:** Drugs could be deleted even if batches or dispensation items reference them.
+- **Root cause:** No SoftDeletes, no deleting guard.
+- **Fix summary:** Added SoftDeletes, `deleting` guard (checks `batches()` and `dispensationItems()` existence), `forceDeleting` guard.
+- **Files:** `app/Models/Drug.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-109 — DrugBatch model missing SoftDeletes
+- **Severity:** High
+- **Module:** Models / DrugBatch
+- **Symptoms:** Batch records could be permanently deleted.
+- **Root cause:** SoftDeletes trait not applied.
+- **Fix summary:** Added SoftDeletes.
+- **Files:** `app/Models/DrugBatch.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-110 — Payment model missing SoftDeletes + withTrashed bug
+- **Severity:** High
+- **Module:** Models / Payment
+- **Symptoms:** Payment records could be hard-deleted; `recalculateInvoice()` fails on soft-deleted invoices.
+- **Root cause:** Missing SoftDeletes; `$this->invoice` not using `withTrashed()`.
+- **Fix summary:** Added SoftDeletes, forceDeleting guard, fixed `recalculateInvoice()` to use `->invoice()->withTrashed()->first()`.
+- **Files:** `app/Models/Payment.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-111 — StockMovement records can be modified (violates immutability)
+- **Severity:** High
+- **Module:** Models / StockMovement
+- **Symptoms:** Stock movement records could be updated or deleted, breaking audit trail.
+- **Root cause:** No immutability guards.
+- **Fix summary:** Added `booted()` with `updating` and `deleting` guards that throw RuntimeException.
+- **Files:** `app/Models/StockMovement.php`
+- **Status:** Fixed
+
+### BUG-20260224-112 — LabTestCatalog model missing SoftDeletes
+- **Severity:** Medium
+- **Module:** Models / LabTestCatalog
+- **Symptoms:** Lab tests could be permanently deleted.
+- **Root cause:** SoftDeletes trait not applied.
+- **Fix summary:** Added SoftDeletes.
+- **Files:** `app/Models/LabTestCatalog.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-113 — LabDepartment model missing SoftDeletes + deletion guard
+- **Severity:** Medium
+- **Module:** Models / LabDepartment
+- **Symptoms:** Departments could be deleted even with associated tests.
+- **Root cause:** No SoftDeletes or deletion guard.
+- **Fix summary:** Added SoftDeletes, `deleting` guard checking `tests()->exists()`.
+- **Files:** `app/Models/LabDepartment.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-114 — LabSampleType model missing SoftDeletes
+- **Severity:** Medium
+- **Module:** Models / LabSampleType
+- **Symptoms:** Sample types could be permanently deleted.
+- **Root cause:** SoftDeletes trait not applied.
+- **Fix summary:** Added SoftDeletes.
+- **Files:** `app/Models/LabSampleType.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-115 — QueueDepartment model missing SoftDeletes + deletion guard + scopeActive
+- **Severity:** Medium
+- **Module:** Models / QueueDepartment
+- **Symptoms:** Departments could be deleted with existing tickets/counters; no scope for filtering active departments.
+- **Root cause:** Missing SoftDeletes, deletion guard, and `scopeActive()`.
+- **Fix summary:** Added SoftDeletes, `deleting` guard, `scopeActive()` query scope.
+- **Files:** `app/Models/QueueDepartment.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-116 — QueueCounter model missing SoftDeletes
+- **Severity:** Medium
+- **Module:** Models / QueueCounter
+- **Symptoms:** Counters could be permanently deleted.
+- **Root cause:** SoftDeletes trait not applied.
+- **Fix summary:** Added SoftDeletes.
+- **Files:** `app/Models/QueueCounter.php`, migration
+- **Status:** Fixed
+
+### BUG-20260224-117 — IcdCode missing deletion guard
+- **Severity:** Medium
+- **Module:** Models / IcdCode
+- **Symptoms:** ICD codes could be deleted even when referenced by visit diagnoses or chronic conditions.
+- **Root cause:** No deleting guard.
+- **Fix summary:** Added `booted()` with deleting guard checking `visitDiagnoses()` and `chronicConditions()`.
+- **Files:** `app/Models/IcdCode.php`
+- **Status:** Fixed
+
+### BUG-20260224-118 — Invoice missing deleting guard for payments
+- **Severity:** High
+- **Module:** Models / Invoice
+- **Symptoms:** Invoice could be soft-deleted even with existing payments.
+- **Root cause:** Only `forceDeleting` guard existed; no `deleting` guard.
+- **Fix summary:** Added `deleting` guard checking `payments()->exists()`.
+- **Files:** `app/Models/Invoice.php`
+- **Status:** Fixed
+
+### BUG-20260224-119 — LabOrderTest missing samples() HasMany relationship
+- **Severity:** Medium
+- **Module:** Models / LabOrderTest
+- **Symptoms:** No way to access all samples (only latest via `sample(): HasOne`).
+- **Root cause:** Relationship not defined.
+- **Fix summary:** Added `samples(): HasMany` returning `$this->hasMany(LabSample::class)`.
+- **Files:** `app/Models/LabOrderTest.php`
+- **Status:** Fixed
+
+### BUG-20260224-120 — User model missing last_login_ip in $fillable
+- **Severity:** Low
+- **Module:** Models / User
+- **Symptoms:** Mass-assignment of `last_login_ip` would silently fail.
+- **Root cause:** Field not listed in `$fillable`.
+- **Fix summary:** Added `'last_login_ip'` to `$fillable`.
+- **Files:** `app/Models/User.php`
+- **Status:** Fixed
+
+### BUG-20260224-121 — cascadeOnDelete on 15 foreign keys destroys clinical/financial data
+- **Severity:** Critical
+- **Module:** Database / Migrations
+- **Symptoms:** Deleting a parent record silently cascade-deletes child clinical/financial records (patient contacts, allergies, chronic conditions, diagnoses, prescriptions, lab data, invoices, stock movements, dispensation items, queue counters/sequences).
+- **Root cause:** Migrations used `cascadeOnDelete()` instead of `restrictOnDelete()`.
+- **Fix summary:** Changed `cascadeOnDelete()` to `restrictOnDelete()` in all 15 affected migration files.
+- **Files:** 15 migration files (100004, 100005, 100006, 100008, 100009, 100010, 100014, 100016, 100017, 100018, 100020, 120003, 120005, 110002, 110003)
+- **Status:** Fixed
+
+### BUG-20260224-122 — Missing softDeletes columns in 10 tables
+- **Severity:** High
+- **Module:** Database / Migrations
+- **Symptoms:** Models with SoftDeletes trait have no `deleted_at` column.
+- **Root cause:** SoftDeletes columns not added when models were created.
+- **Fix summary:** Created migration `2026_02_24_150001_add_soft_deletes_and_fix_phi_columns.php` adding `deleted_at` to: prescriptions, dispensations, drugs, drug_batches, payments, lab_test_catalog, lab_departments, lab_sample_types, queue_departments, queue_counters.
+- **Files:** `database/migrations/2026_02_24_150001_add_soft_deletes_and_fix_phi_columns.php`
+- **Status:** Fixed
+
+### BUG-20260224-123 — PHI columns too narrow for encrypted data
+- **Severity:** High
+- **Module:** Database / Migrations
+- **Symptoms:** Encrypted ciphertext exceeds `string(255)` limit, causing truncation/errors.
+- **Root cause:** PHI columns defined as `string()` instead of `text()`.
+- **Fix summary:** New migration widens `string` → `text` for: patients(cnic, phone, email, city), patient_contacts(name, phone), patient_allergies(allergen), patient_chronic_conditions(condition_name), lab_results(value).
+- **Files:** `database/migrations/2026_02_24_150001_add_soft_deletes_and_fix_phi_columns.php`
+- **Status:** Fixed
+
+### BUG-20260224-124 — B-tree indexes on encrypted PHI columns are useless
+- **Severity:** Medium
+- **Module:** Database / Migrations
+- **Symptoms:** Indexes on `patients.phone` and `patients.cnic` serve no purpose after encryption (ciphertext is not searchable via B-tree).
+- **Root cause:** Indexes were originally created for plaintext searches.
+- **Fix summary:** New migration drops `patients_phone_index` and `patients_cnic_index`.
+- **Files:** `database/migrations/2026_02_24_150001_add_soft_deletes_and_fix_phi_columns.php`
+- **Status:** Fixed
+
+### BUG-20260224-125 — Missing FK indexes on 15+ columns
+- **Severity:** Medium
+- **Module:** Database / Migrations
+- **Symptoms:** Queries joining on unindexed FK columns are slow (especially on SQLite which doesn't auto-index FKs).
+- **Root cause:** Indexes not created for several foreign key columns.
+- **Fix summary:** New migration adds indexes on: visit_diagnoses.icd_code_id, patient_chronic_conditions.icd_code_id, lab_order_tests.verified_by, lab_samples.lab_order_test_id, payments.received_by, stock_movements.performed_by, dispensations.prescription_id + dispensed_by, queue_tickets.patient_id + visit_id + created_by, lab_test_catalog.department_id + sample_type_id.
+- **Files:** `database/migrations/2026_02_24_150001_add_soft_deletes_and_fix_phi_columns.php`
+- **Status:** Fixed
+
+### BUG-20260224-126 — QueueTokenService lockForUpdate result discarded
+- **Severity:** High
+- **Module:** Services / QueueTokenService
+- **Symptoms:** After creating a new `QueueDailySequence`, the `lockForUpdate()` query result is discarded, so the `$seq` variable holds the un-locked row.
+- **Root cause:** Missing variable assignment.
+- **Fix summary:** Changed to `$seq = QueueDailySequence::query()->whereKey($seq->getKey())->lockForUpdate()->first();`.
+- **Files:** `app/Services/Queue/QueueTokenService.php`
+- **Status:** Fixed
+
+### BUG-20260224-127 — Auditable trait crashes in console (request() unavailable)
+- **Severity:** High
+- **Module:** Traits / Auditable
+- **Symptoms:** Running artisan commands or seeders that trigger model events throws error because `request()->ip()` and `request()->userAgent()` are unavailable in console context.
+- **Root cause:** Unconditional call to `request()` helper.
+- **Fix summary:** Added `app()->runningInConsole()` guard: returns `'console'` when in CLI.
+- **Files:** `app/Traits/Auditable.php`
+- **Status:** Fixed
+
+### BUG-20260224-128 — FileUploadPath uses locale-dependent month name
+- **Severity:** Medium
+- **Module:** Helpers / FileUploadPath
+- **Symptoms:** Upload paths use `$date->format('F')` which returns locale-dependent month names (e.g. "February" vs "فروری"), causing inconsistent directory structures.
+- **Root cause:** `'F'` format is locale-sensitive.
+- **Fix summary:** Changed to `$date->format('m')` (numeric month, e.g. "02").
+- **Files:** `app/Helpers/FileUploadPath.php`
+- **Status:** Fixed
+
+### BUG-20260224-129 — SetupController .env injection incomplete sanitization
+- **Severity:** High
+- **Module:** Controllers / SetupController
+- **Symptoms:** `.env` value sanitization doesn't strip `#` (comment), `$` (variable interpolation), or backtick (command substitution) characters. Also missing `LOCK_EX` on file write.
+- **Root cause:** Incomplete sanitization.
+- **Fix summary:** Added `#`, `$`, backtick to stripped characters; added backslash escaping in `addcslashes`; added `LOCK_EX` flag to `file_put_contents`.
+- **Files:** `app/Http/Controllers/SetupController.php`
+- **Status:** Fixed
+
+### BUG-20260224-130 — AdminUserSeeder runs in production
+- **Severity:** Medium
+- **Module:** Seeders / AdminUserSeeder
+- **Symptoms:** Running `db:seed` in production creates/updates admin with weak password.
+- **Root cause:** No production guard.
+- **Fix summary:** Added `if (app()->isProduction()) { return; }` guard at top of `run()`.
+- **Files:** `database/seeders/AdminUserSeeder.php`
+- **Status:** Fixed
+
+### BUG-20260224-131 — RolesAndPermissionsSeeder uses givePermissionTo (additive only)
+- **Severity:** Medium
+- **Module:** Seeders / RolesAndPermissionsSeeder
+- **Symptoms:** Re-running seeder never removes revoked permissions from roles.
+- **Root cause:** `givePermissionTo()` only adds; `syncPermissions()` replaces.
+- **Fix summary:** Changed all 6 `givePermissionTo()` calls to `syncPermissions()`.
+- **Files:** `database/seeders/RolesAndPermissionsSeeder.php`
+- **Status:** Fixed
+
+### BUG-20260224-132 — AppServiceProvider lazy loading logger uses magic interpolation
+- **Severity:** Low
+- **Module:** Providers / AppServiceProvider
+- **Symptoms:** `"{$model}"` in logger triggers `__toString()` on model which may throw; non-deterministic output.
+- **Root cause:** Magic string interpolation on Eloquent model object.
+- **Fix summary:** Changed to `get_class($model) . '::' . $relation`.
+- **Files:** `app/Providers/AppServiceProvider.php`
+- **Status:** Fixed
+
+### BUG-20260224-133 — DispensationResource allows editing non-draft dispensations via table action
+- **Severity:** Critical
+- **Module:** Filament / DispensationResource
+- **Symptoms:** Table EditAction is visible for all dispensation statuses; only the Edit page has a guard. Users can navigate to edit URL directly.
+- **Root cause:** Missing `->visible()` on table EditAction.
+- **Fix summary:** Added `->visible(fn (Dispensation $record) => $record->status === DispensationStatus::Draft)` to table EditAction.
+- **Files:** `app/Filament/Resources/DispensationResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-134 — DispensationResource drug select shows inactive drugs
+- **Severity:** High
+- **Module:** Filament / DispensationResource
+- **Symptoms:** Drug dropdown includes deactivated drugs.
+- **Root cause:** No `where('is_active', true)` filter on relationship query.
+- **Fix summary:** Added `fn ($query) => $query->where('is_active', true)` to drug_id relationship.
+- **Files:** `app/Filament/Resources/DispensationResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-135 — DispensationResource uses deprecated ->reactive()
+- **Severity:** Low
+- **Module:** Filament / DispensationResource
+- **Symptoms:** `->reactive()` is deprecated in Filament v3; should use `->live()`.
+- **Root cause:** Code written with older Filament API.
+- **Fix summary:** Replaced all 3 `->reactive()` calls with `->live()`.
+- **Files:** `app/Filament/Resources/DispensationResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-136 — DispensationResource missing defaultSort and status filter
+- **Severity:** Low
+- **Module:** Filament / DispensationResource
+- **Symptoms:** Table shows records in insertion order; no way to filter by status.
+- **Root cause:** Missing table configuration.
+- **Fix summary:** Added `->defaultSort('created_at', 'desc')` and `SelectFilter::make('status')`.
+- **Files:** `app/Filament/Resources/DispensationResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-137 — DrugBatchResource drug select shows inactive drugs
+- **Severity:** High
+- **Module:** Filament / DrugBatchResource
+- **Symptoms:** Drug dropdown includes deactivated drugs when creating batches.
+- **Root cause:** No active filter on relationship query.
+- **Fix summary:** Added `fn ($query) => $query->where('is_active', true)`.
+- **Files:** `app/Filament/Resources/DrugBatchResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-138 — DrugBatchResource sale_price displays raw integer
+- **Severity:** Medium
+- **Module:** Filament / DrugBatchResource
+- **Symptoms:** Money stored in paisa displayed as raw integer (e.g. 15000 instead of 150.00).
+- **Root cause:** Missing money formatting on table column.
+- **Fix summary:** Added `->money(divideBy: 100)` to sale_price column.
+- **Files:** `app/Filament/Resources/DrugBatchResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-139 — DrugBatchResource missing defaultSort
+- **Severity:** Low
+- **Module:** Filament / DrugBatchResource
+- **Symptoms:** Table shows records in insertion order.
+- **Root cause:** No default sort configured.
+- **Fix summary:** Added `->defaultSort('created_at', 'desc')`.
+- **Files:** `app/Filament/Resources/DrugBatchResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-140 — QueueTicketResource form department select shows inactive departments
+- **Severity:** Medium
+- **Module:** Filament / QueueTicketResource
+- **Symptoms:** Form allows selecting deactivated departments.
+- **Root cause:** No `where('is_active', true)` on query.
+- **Fix summary:** Added active filter to form department select.
+- **Files:** `app/Filament/Resources/QueueTicketResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-141 — QueueTicketResource uses deprecated ->reactive()
+- **Severity:** Low
+- **Module:** Filament / QueueTicketResource
+- **Symptoms:** `->reactive()` deprecated in Filament v3.
+- **Root cause:** Older API usage.
+- **Fix summary:** Changed to `->live()`.
+- **Files:** `app/Filament/Resources/QueueTicketResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-142 — QueueCounterResource form department select shows inactive departments
+- **Severity:** Medium
+- **Module:** Filament / QueueCounterResource
+- **Symptoms:** Form allows assigning counter to deactivated department.
+- **Root cause:** No active filter.
+- **Fix summary:** Added `->where('is_active', true)` to department select query.
+- **Files:** `app/Filament/Resources/QueueCounterResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-143 — Pervasive i18n violations across Filament resources
+- **Severity:** Medium
+- **Module:** Filament / All Resources
+- **Symptoms:** Section names, helperText, notification titles, and abort messages use hardcoded English strings instead of `__()` / `trans()`, violating ai-context.md §3.6.
+- **Root cause:** i18n helpers not applied during initial development.
+- **Fix summary:** Wrapped all user-facing strings in `__()` across: DispensationResource, DrugBatchResource, DrugResource, QueueTicketResource, QueueCounterResource, QueueDepartmentResource, and 5 Edit page files.
+- **Files:** 12 Filament resource/page files
+- **Status:** Fixed
+
+### BUG-20260224-144 — Invoice forceDeleting message not i18n-wrapped
+- **Severity:** Low
+- **Module:** Models / Invoice
+- **Symptoms:** `forceDeleting` RuntimeException message was hardcoded English.
+- **Root cause:** Missing `__()` wrapper.
+- **Fix summary:** Wrapped in `__()`.
+- **Files:** `app/Models/Invoice.php`
+- **Status:** Fixed
+
+### BUG-20260224-145 — Missing automated test coverage for BUG-099 through BUG-144
+- **Severity:** Low
+- **Module:** Tests
+- **Symptoms:** All code changes in this audit session lack corresponding automated tests.
+- **Root cause:** Bug fixes applied without accompanying test updates.
+- **Fix summary:** Documented as technical debt. Test coverage should be added in a dedicated testing sprint.
+- **Files:** `tests/`
+- **Status:** Open — documented for future sprint

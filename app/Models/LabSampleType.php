@@ -8,10 +8,11 @@ use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LabSampleType extends Model
 {
-    use Auditable, HasUlid;
+    use Auditable, HasUlid, SoftDeletes;
 
     protected $fillable = [
         'name',

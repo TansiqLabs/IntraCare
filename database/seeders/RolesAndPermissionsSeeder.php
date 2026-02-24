@@ -95,11 +95,11 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Admin — everything
         $admin = Role::findOrCreate('Admin', 'web');
-        $admin->givePermissionTo(Permission::all());
+        $admin->syncPermissions(Permission::all());
 
         // Doctor
         $doctor = Role::findOrCreate('Doctor', 'web');
-        $doctor->givePermissionTo([
+        $doctor->syncPermissions([
             'view-patients', 'create-patients', 'edit-patients',
             'view-visits', 'create-visits', 'edit-visits',
             'view-prescriptions', 'create-prescriptions', 'edit-prescriptions',
@@ -110,7 +110,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Nurse
         $nurse = Role::findOrCreate('Nurse', 'web');
-        $nurse->givePermissionTo([
+        $nurse->syncPermissions([
             'view-patients',
             'view-visits', 'edit-visits', // vitals entry
             'manage-queue', 'view-queue-display',
@@ -119,7 +119,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Pathologist
         $pathologist = Role::findOrCreate('Pathologist', 'web');
-        $pathologist->givePermissionTo([
+        $pathologist->syncPermissions([
             'view-patients',
             'view-lab-orders',
             'view-lab-reports', 'enter-lab-results', 'verify-lab-results', 'print-lab-reports',
@@ -129,7 +129,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Pharmacist
         $pharmacist = Role::findOrCreate('Pharmacist', 'web');
-        $pharmacist->givePermissionTo([
+        $pharmacist->syncPermissions([
             'view-patients',
             'view-prescriptions',
             'view-pharmacy', 'manage-pharmacy-inventory', 'dispense-drugs',
@@ -138,7 +138,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Receptionist
         $receptionist = Role::findOrCreate('Receptionist', 'web');
-        $receptionist->givePermissionTo([
+        $receptionist->syncPermissions([
             'view-patients', 'create-patients', 'edit-patients',
             'view-visits', 'create-visits',
             'manage-queue', 'view-queue-display',

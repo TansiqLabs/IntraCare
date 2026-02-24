@@ -13,6 +13,18 @@ class IcdCode extends Model
 {
     use Auditable, HasUlid;
 
+    protected static function booted(): void
+    {
+        static::deleting(function (IcdCode $code) {
+            if ($code->visitDiagnoses()->exists()) {
+                throw new \RuntimeException(__('Cannot delete an ICD code that is used in diagnoses.'));
+            }
+            if ($code->chronicConditions()->exists()) {
+                throw new \RuntimeException(__('Cannot delete an ICD code that is used in chronic conditions.'));
+            }
+        });
+    }
+
     protected $fillable = [
         'code',
         'short_description',

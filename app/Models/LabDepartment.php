@@ -8,10 +8,20 @@ use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LabDepartment extends Model
 {
-    use Auditable, HasUlid;
+    use Auditable, HasUlid, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (LabDepartment $dept) {
+            if ($dept->tests()->exists()) {
+                throw new \RuntimeException(__('Cannot delete a department that has tests.'));
+            }
+        });
+    }
 
     protected $fillable = [
         'name',

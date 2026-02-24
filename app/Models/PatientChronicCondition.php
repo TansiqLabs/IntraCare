@@ -25,6 +25,8 @@ class PatientChronicCondition extends Model
     {
         return [
             'diagnosed_on' => 'date',
+            'condition_name' => 'encrypted',
+            'notes' => 'encrypted',
         ];
     }
 

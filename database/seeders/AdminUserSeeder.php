@@ -11,6 +11,12 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->isProduction()) {
+            $this->command?->error('Cannot seed admin user in production. Use the setup wizard instead.');
+
+            return;
+        }
+
         $admin = User::firstOrCreate(
             ['email' => 'admin@intracare.local'],
             [

@@ -29,17 +29,17 @@ class QueueTicketResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Ticket')
+                Forms\Components\Section::make(__('Ticket'))
                     ->schema([
                         Forms\Components\Select::make('queue_department_id')
-                            ->label('Department')
+                            ->label(__('Department'))
                             ->required()
-                            ->options(fn () => QueueDepartment::query()->orderBy('name')->pluck('name', 'id')->all())
+                            ->options(fn () => QueueDepartment::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id')->all())
                             ->searchable()
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(fn (Forms\Set $set) => $set('queue_counter_id', null)),
                         Forms\Components\Select::make('queue_counter_id')
-                            ->label('Counter')
+                            ->label(__('Counter'))
                             ->options(function (Forms\Get $get) {
                                 $deptId = $get('queue_department_id');
                                 if (! $deptId) {
@@ -118,7 +118,7 @@ class QueueTicketResource extends Resource
                         );
 
                         Notification::make()
-                            ->title('Ticket issued: '.$ticket->token_display)
+                            ->title(__('Ticket issued: ') . $ticket->token_display)
                             ->success()
                             ->send();
                     }),
@@ -138,7 +138,7 @@ class QueueTicketResource extends Resource
                                 ->pluck('code', 'id')
                                 ->all())
                             ->nullable()
-                            ->helperText('Optional: select a counter for this ticket.'),
+                            ->helperText(__('Optional: select a counter for this ticket.')),
                     ])
                     ->action(function (QueueTicket $record, array $data) {
                         $record->forceFill([

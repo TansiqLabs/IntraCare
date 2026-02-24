@@ -21,7 +21,7 @@ class EditDispensation extends EditRecord
         abort_unless(
             $this->record->status === DispensationStatus::Draft,
             403,
-            'Only draft dispensations can be edited.'
+            __('Only draft dispensations can be edited.')
         );
     }
 

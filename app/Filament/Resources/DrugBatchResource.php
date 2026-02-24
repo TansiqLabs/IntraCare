@@ -24,10 +24,10 @@ class DrugBatchResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Batch')
+                Forms\Components\Section::make(__('Batch'))
                     ->schema([
                         Forms\Components\Select::make('drug_id')
-                            ->relationship('drug', 'generic_name')
+                            ->relationship('drug', 'generic_name', fn ($query) => $query->where('is_active', true))
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -50,17 +50,17 @@ class DrugBatchResource extends Resource
                             ->default(0)
                             ->disabled()
                             ->dehydrated(false)
-                            ->helperText('Managed via Stock Movements. Use stock adjustment for corrections.'),
+                            ->helperText(__('Managed via Stock Movements. Use stock adjustment for corrections.')),
                         Forms\Components\TextInput::make('unit_cost')
                             ->numeric()
                             ->minValue(0)
                             ->default(0)
-                            ->helperText('Smallest currency unit'),
+                            ->helperText(__('Smallest currency unit')),
                         Forms\Components\TextInput::make('sale_price')
                             ->numeric()
                             ->minValue(0)
                             ->default(0)
-                            ->helperText('Smallest currency unit'),
+                            ->helperText(__('Smallest currency unit')),
                         Forms\Components\TextInput::make('supplier_name')
                             ->maxLength(255)
                             ->nullable(),
@@ -73,6 +73,7 @@ class DrugBatchResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('drug.generic_name')
                     ->label('Drug')
@@ -81,7 +82,7 @@ class DrugBatchResource extends Resource
                 Tables\Columns\TextColumn::make('batch_number')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('expiry_date')->date()->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('quantity_on_hand')->label('On hand')->sortable(),
-                Tables\Columns\TextColumn::make('sale_price')->sortable()->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('sale_price')->sortable()->money(divideBy: 100)->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('is_active')->boolean()->sortable(),
                 Tables\Columns\TextColumn::make('created_at')->since()->toggleable(isToggledHiddenByDefault: true),
             ])

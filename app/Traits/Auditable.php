@@ -102,8 +102,8 @@ trait Auditable
             'old_values' => ! empty($oldValues) ? $oldValues : null,
             'new_values' => ! empty($newValues) ? $newValues : null,
             'user_id' => auth()->id(),
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
+            'ip_address' => app()->runningInConsole() ? 'console' : request()->ip(),
+            'user_agent' => app()->runningInConsole() ? 'console' : request()->userAgent(),
             // AuditLog has $timestamps=false; created_at is required by schema.
             'created_at' => now(),
         ]);

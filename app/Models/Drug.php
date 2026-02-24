@@ -8,10 +8,29 @@ use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Drug extends Model
 {
-    use Auditable, HasUlid;
+    use Auditable, HasUlid, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Drug $drug) {
+            if (! $drug->isForceDeleting()) {
+                if ($drug->batches()->exists()) {
+                    throw new \RuntimeException(__('Cannot delete a drug that has batches. Deactivate it instead.'));
+                }
+                if ($drug->dispensationItems()->exists()) {
+                    throw new \RuntimeException(__('Cannot delete a drug that has dispensation items.'));
+                }
+            }
+        });
+
+        static::forceDeleting(function (Drug $model) {
+            throw new \RuntimeException('Force-deleting drug records is prohibited.');
+        });
+    }
 
     protected $fillable = [
         'generic_name',

@@ -25,6 +25,8 @@ class PatientContact extends Model
     {
         return [
             'is_emergency' => 'boolean',
+            'name' => 'encrypted',
+            'phone' => 'encrypted',
         ];
     }
 

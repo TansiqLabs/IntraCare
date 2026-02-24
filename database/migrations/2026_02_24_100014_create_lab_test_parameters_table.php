@@ -23,7 +23,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            $table->foreign('lab_test_id')->references('id')->on('lab_test_catalog')->cascadeOnDelete();
+            $table->foreign('lab_test_id')->references('id')->on('lab_test_catalog')->restrictOnDelete();
         });
     }
 

@@ -30,7 +30,7 @@ return new class extends Migration
             $table->index(['drug_batch_id']);
             $table->index(['type']);
 
-            $table->foreign('drug_id')->references('id')->on('drugs')->cascadeOnDelete();
+            $table->foreign('drug_id')->references('id')->on('drugs')->restrictOnDelete();
             $table->foreign('drug_batch_id')->references('id')->on('drug_batches')->nullOnDelete();
             $table->foreign('performed_by')->references('id')->on('users')->nullOnDelete();
         });

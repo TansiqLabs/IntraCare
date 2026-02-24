@@ -39,7 +39,7 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->isProduction()) {
             Model::preventLazyLoading();
             Model::handleLazyLoadingViolationUsing(function ($model, $relation) {
-                logger()->warning("Lazy loading violation: {$model}::{$relation}");
+                logger()->warning('Lazy loading violation: ' . get_class($model) . '::' . $relation);
             });
         }
 

@@ -19,7 +19,7 @@ return new class extends Migration
 
             $table->index('status');
 
-            $table->foreign('lab_order_id')->references('id')->on('lab_orders')->cascadeOnDelete();
+            $table->foreign('lab_order_id')->references('id')->on('lab_orders')->restrictOnDelete();
             $table->foreign('lab_test_id')->references('id')->on('lab_test_catalog')->restrictOnDelete();
             $table->foreign('verified_by')->references('id')->on('users')->nullOnDelete();
         });

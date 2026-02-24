@@ -25,12 +25,12 @@ class QueueCounterResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Counter')
+                Forms\Components\Section::make(__('Counter'))
                     ->schema([
                         Forms\Components\Select::make('queue_department_id')
-                            ->label('Department')
+                            ->label(__('Department'))
                             ->required()
-                            ->options(fn () => QueueDepartment::query()->orderBy('name')->pluck('name', 'id')->all())
+                            ->options(fn () => QueueDepartment::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id')->all())
                             ->searchable(),
                         Forms\Components\TextInput::make('name')->required()->maxLength(255),
                         Forms\Components\TextInput::make('code')
@@ -38,7 +38,7 @@ class QueueCounterResource extends Resource
                             ->maxLength(20)
                             ->unique(ignoreRecord: true)
                             ->regex('/^[A-Za-z0-9\-]+$/')
-                            ->helperText('Uppercase code, e.g. C-1, OPD-1')
+                            ->helperText(__('Uppercase code, e.g. C-1, OPD-1'))
                             ->dehydrateStateUsing(fn ($state) => strtoupper((string) $state)),
                         Forms\Components\TextInput::make('floor')
                             ->numeric()

@@ -27,7 +27,7 @@ class DispensationResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Dispensation')
+                Forms\Components\Section::make(__('Dispensation'))
                     ->schema([
                         Forms\Components\Select::make('patient_id')
                             ->relationship('patient', 'mr_number')
@@ -55,17 +55,17 @@ class DispensationResource extends Resource
                             ->nullable(),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Items')
+                Forms\Components\Section::make(__('Items'))
                     ->schema([
                         Forms\Components\Repeater::make('items')
                             ->relationship()
                             ->schema([
                                 Forms\Components\Select::make('drug_id')
-                                    ->relationship('drug', 'generic_name')
+                                    ->relationship('drug', 'generic_name', fn ($query) => $query->where('is_active', true))
                                     ->searchable()
                                     ->preload()
                                     ->required()
-                                    ->reactive()
+                                    ->live()
                                     ->afterStateUpdated(fn (Forms\Set $set) => $set('drug_batch_id', null)),
                                 Forms\Components\Select::make('drug_batch_id')
                                     ->label('Batch (optional)')
@@ -85,12 +85,12 @@ class DispensationResource extends Resource
                                     })
                                     ->searchable()
                                     ->nullable()
-                                    ->helperText('Leave empty to auto-allocate by FEFO when completing.'),
+                                    ->helperText(__('Leave empty to auto-allocate by FEFO when completing.')),
                                 Forms\Components\TextInput::make('quantity')
                                     ->numeric()
                                     ->minValue(1)
                                     ->required()
-                                    ->reactive()
+                                    ->live()
                                     ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
                                         $set('line_total', ($get('quantity') ?? 0) * ($get('unit_price') ?? 0));
                                     }),
@@ -98,8 +98,8 @@ class DispensationResource extends Resource
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0)
-                                    ->helperText('Smallest currency unit (e.g. paisa). Leave 0 to use batch price.')
-                                    ->reactive()
+                                    ->helperText(__('Smallest currency unit (e.g. paisa). Leave 0 to use batch price.'))
+                                    ->live()
                                     ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
                                         $set('line_total', ($get('quantity') ?? 0) * ($get('unit_price') ?? 0));
                                     }),
@@ -111,7 +111,7 @@ class DispensationResource extends Resource
                                     ->afterStateHydrated(function (Forms\Components\TextInput $component, Forms\Get $get) {
                                         $component->state(($get('quantity') ?? 0) * ($get('unit_price') ?? 0));
                                     })
-                                    ->helperText('Auto-calculated: quantity × unit_price'),
+                                    ->helperText(__('Auto-calculated: quantity × unit_price')),
                                 Forms\Components\Textarea::make('notes')
                                     ->columnSpanFull()
                                     ->nullable(),
@@ -144,7 +144,7 @@ class DispensationResource extends Resource
                         $service->completeDispensation($record, performedBy: auth()->id());
 
                         Notification::make()
-                            ->title('Dispensation completed')
+                            ->title(__('Dispensation completed'))
                             ->success()
                             ->send();
                     }),
@@ -165,7 +165,7 @@ class DispensationResource extends Resource
                         $service->voidCompletedDispensation($record, performedBy: auth()->id(), reason: (string) ($data['reason'] ?? ''));
 
                         Notification::make()
-                            ->title('Dispensation voided and stock restored')
+                            ->title(__('Dispensation voided and stock restored'))
                             ->success()
                             ->send();
                     }),
@@ -178,12 +178,18 @@ class DispensationResource extends Resource
                         $record->update(['status' => DispensationStatus::Cancelled]);
 
                         Notification::make()
-                            ->title('Dispensation cancelled')
+                            ->title(__('Dispensation cancelled'))
                             ->success()
                             ->send();
                     }),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn (Dispensation $record) => $record->status === DispensationStatus::Draft),
             ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('status')
+                    ->options(DispensationStatus::class),
+            ])
+            ->defaultSort('created_at', 'desc')
             ->bulkActions([]);
     }
 

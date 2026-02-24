@@ -44,8 +44,11 @@ class Visit extends Model
         return [
             'visit_type' => VisitType::class,
             'status' => VisitStatus::class,
-            'vitals' => 'array',
+            'vitals' => 'encrypted:array',
             'visited_at' => 'datetime',
+            'chief_complaint' => 'encrypted',
+            'examination_notes' => 'encrypted',
+            'plan' => 'encrypted',
         ];
     }
 

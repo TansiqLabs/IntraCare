@@ -27,7 +27,7 @@ class EditDrugBatch extends EditRecord
                             ->where('drug_batch_id', $this->record->getKey())
                             ->exists(),
                         403,
-                        'Cannot delete a batch that has stock movements. Deactivate it instead.'
+                        __('Cannot delete a batch that has stock movements. Deactivate it instead.')
                     );
                 }),
         ];

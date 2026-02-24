@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreign('queue_department_id')
                 ->references('id')
                 ->on('queue_departments')
-                ->cascadeOnDelete();
+                ->restrictOnDelete();
         });
     }
 

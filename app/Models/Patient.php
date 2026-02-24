@@ -48,6 +48,10 @@ class Patient extends Model
             'date_of_birth' => 'date',
             'gender' => Gender::class,
             'blood_group' => BloodGroup::class,
+            'cnic' => 'encrypted',
+            'phone' => 'encrypted',
+            'email' => 'encrypted',
+            'address' => 'encrypted',
         ];
     }
 

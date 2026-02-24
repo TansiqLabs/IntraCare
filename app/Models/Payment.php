@@ -10,13 +10,18 @@ use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
 {
-    use Auditable, HasUlid;
+    use Auditable, HasUlid, SoftDeletes;
 
     protected static function booted(): void
     {
+        static::forceDeleting(function (Payment $model) {
+            throw new \RuntimeException('Force-deleting payment records is prohibited.');
+        });
+
         static::saved(function (Payment $payment) {
             $payment->recalculateInvoice();
         });
@@ -31,7 +36,7 @@ class Payment extends Model
      */
     protected function recalculateInvoice(): void
     {
-        $invoice = $this->invoice;
+        $invoice = $this->invoice()->withTrashed()->first();
         if (! $invoice) {
             return;
         }

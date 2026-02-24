@@ -15,6 +15,16 @@ class StockMovement extends Model
 {
     use Auditable, HasUlid;
 
+    protected static function booted(): void
+    {
+        static::updating(function () {
+            throw new \RuntimeException('Stock movements cannot be modified.');
+        });
+        static::deleting(function () {
+            throw new \RuntimeException('Stock movements cannot be deleted.');
+        });
+    }
+
     protected $fillable = [
         'drug_id',
         'drug_batch_id',

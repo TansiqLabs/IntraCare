@@ -17,7 +17,7 @@ return new class extends Migration
             $table->boolean('is_emergency')->default(false);
             $table->timestamps();
 
-            $table->foreign('patient_id')->references('id')->on('patients')->cascadeOnDelete();
+            $table->foreign('patient_id')->references('id')->on('patients')->restrictOnDelete();
         });
     }
 

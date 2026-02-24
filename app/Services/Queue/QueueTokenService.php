@@ -41,7 +41,7 @@ final class QueueTokenService
 
                 // Lock the just-created row for the rest of the transaction.
                 $seq->refresh();
-                QueueDailySequence::query()->whereKey($seq->getKey())->lockForUpdate()->first();
+                $seq = QueueDailySequence::query()->whereKey($seq->getKey())->lockForUpdate()->first();
             }
 
             $seq->last_number = (int) $seq->last_number + 1;

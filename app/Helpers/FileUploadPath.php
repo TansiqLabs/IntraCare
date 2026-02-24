@@ -29,7 +29,7 @@ class FileUploadPath
             '%s/%s/%s',
             trim($prefix, '/'),
             $date->format('Y'),
-            $date->format('F')
+            $date->format('m')
         );
     }
 }

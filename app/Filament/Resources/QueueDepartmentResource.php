@@ -24,7 +24,7 @@ class QueueDepartmentResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Department')
+                Forms\Components\Section::make(__('Department'))
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->required()

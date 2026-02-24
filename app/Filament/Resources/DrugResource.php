@@ -24,7 +24,7 @@ class DrugResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Drug')
+                Forms\Components\Section::make(__('Drug'))
                     ->schema([
                         Forms\Components\TextInput::make('generic_name')
                             ->required()
@@ -35,15 +35,15 @@ class DrugResource extends Resource
                         Forms\Components\TextInput::make('formulation')
                             ->maxLength(50)
                             ->nullable()
-                            ->helperText('tablet, capsule, syrup, injection, ...'),
+                            ->helperText(__('tablet, capsule, syrup, injection, ...')),
                         Forms\Components\TextInput::make('strength')
                             ->maxLength(50)
                             ->nullable()
-                            ->helperText('500mg, 5mg/5ml, ...'),
+                            ->helperText(__('500mg, 5mg/5ml, ...')),
                         Forms\Components\TextInput::make('unit')
                             ->maxLength(30)
                             ->default('pcs')
-                            ->helperText('pcs, ml, vial, ...'),
+                            ->helperText(__('pcs, ml, vial, ...')),
                         Forms\Components\TextInput::make('barcode')
                             ->maxLength(100)
                             ->nullable()

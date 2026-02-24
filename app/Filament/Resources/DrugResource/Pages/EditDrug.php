@@ -27,7 +27,7 @@ class EditDrug extends EditRecord
                             ->where('drug_id', $this->record->getKey())
                             ->exists(),
                         403,
-                        'Cannot delete a drug that has batches. Deactivate it instead.'
+                        __('Cannot delete a drug that has batches. Deactivate it instead.')
                     );
                 }),
         ];

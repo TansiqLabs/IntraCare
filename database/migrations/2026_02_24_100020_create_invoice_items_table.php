@@ -21,7 +21,7 @@ return new class extends Migration
 
             $table->index(['itemable_type', 'itemable_id']);
 
-            $table->foreign('invoice_id')->references('id')->on('invoices')->cascadeOnDelete();
+            $table->foreign('invoice_id')->references('id')->on('invoices')->restrictOnDelete();
         });
     }
 

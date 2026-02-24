@@ -8,10 +8,23 @@ use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class QueueDepartment extends Model
 {
-    use Auditable, HasUlid;
+    use Auditable, HasUlid, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (QueueDepartment $dept) {
+            if ($dept->tickets()->exists()) {
+                throw new \RuntimeException(__('Cannot delete a department that has tickets. Deactivate it instead.'));
+            }
+            if ($dept->counters()->exists()) {
+                throw new \RuntimeException(__('Cannot delete a department that has counters. Deactivate it instead.'));
+            }
+        });
+    }
 
     protected $fillable = [
         'name',
@@ -46,5 +59,10 @@ class QueueDepartment extends Model
     public function getRouteKeyName(): string
     {
         return 'code';
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }
