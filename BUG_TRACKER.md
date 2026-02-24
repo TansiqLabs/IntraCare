@@ -265,3 +265,163 @@ _None yet._
 - **Symptoms:** Cached `intracare.installed=true` persisted even after all users were deleted.
 - **Fix summary:** When cache says `true`, re-verify with `User::exists()` and clear cache if stale.
 - **Status:** Fixed
+
+### BUG-20260224-028 — Notifications migration uses `morphs()` incompatible with ULID PKs
+- **Severity:** Critical
+- **Module:** Database / Notifications
+- **Symptoms:** `morphs('notifiable')` generates `unsignedBigInteger` columns, but all models use 26-char ULID strings. Notifications table can't store references to User or Patient records.
+- **Fix summary:** Replaced `$table->morphs('notifiable')` with `$table->string('notifiable_type')`, `$table->string('notifiable_id', 26)`, and explicit index.
+- **Files:** `database/migrations/2026_02_24_130001_create_notifications_table.php`
+- **Status:** Fixed
+
+### BUG-20260224-029 — Dispensation model missing enum cast for status
+- **Severity:** High
+- **Module:** Pharmacy
+- **Symptoms:** `Dispensation->status` returned raw strings instead of typed enum. Inconsistent comparisons across service and resource layers.
+- **Fix summary:** Created `DispensationStatus` enum (Draft/Completed/Cancelled) with `label()` and `color()` methods. Added cast to Dispensation model. Updated PharmacyInventoryService and DispensationResource to use enum.
+- **Files:** `app/Enums/DispensationStatus.php` (new), `app/Models/Dispensation.php`, `app/Services/Pharmacy/PharmacyInventoryService.php`, `app/Filament/Resources/DispensationResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-030 — QueueTicket model missing enum cast for status
+- **Severity:** High
+- **Module:** Queue
+- **Symptoms:** `QueueTicket->status` returned raw strings. Status comparisons used magic strings throughout.
+- **Fix summary:** Created `QueueTicketStatus` enum (Waiting/Called/Served/NoShow). Added cast to model. Updated QueueTokenService and QueueTicketResource to use enum consistently.
+- **Files:** `app/Enums/QueueTicketStatus.php` (new), `app/Models/QueueTicket.php`, `app/Services/Queue/QueueTokenService.php`, `app/Filament/Resources/QueueTicketResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-031 — StockMovement model missing enum cast for type
+- **Severity:** High
+- **Module:** Pharmacy
+- **Symptoms:** `StockMovement->type` returned raw strings instead of typed enum.
+- **Fix summary:** Created `StockMovementType` enum (Receive/Dispense/Adjust/Return). Added cast to model.
+- **Files:** `app/Enums/StockMovementType.php` (new), `app/Models/StockMovement.php`
+- **Status:** Fixed
+
+### BUG-20260224-032 — Payment model missing Auditable trait and invoice balance never recalculated
+- **Severity:** Critical
+- **Module:** Billing / Compliance
+- **Symptoms:** After a payment is created or deleted, the parent Invoice's `paid` and `balance` fields are never updated. Also, payments are not audit-logged despite being financial records.
+- **Fix summary:** Added `Auditable` trait. Added `booted()` with `saved` and `deleted` observers that recalculate the invoice's `paid`/`balance` via `forceFill`.
+- **Files:** `app/Models/Payment.php`
+- **Status:** Fixed
+
+### BUG-20260224-033 — User model exposes sensitive fields in $fillable
+- **Severity:** High
+- **Module:** Auth / Security
+- **Symptoms:** `email_verified_at`, `last_login_at`, `last_login_ip` were mass-assignable, allowing tampering via request injection.
+- **Fix summary:** Removed those three fields from `$fillable`. Updated `SetupController` and `AdminUserSeeder` to use `forceFill()` for `email_verified_at`.
+- **Files:** `app/Models/User.php`, `app/Http/Controllers/SetupController.php`, `database/seeders/AdminUserSeeder.php`
+- **Status:** Fixed
+
+### BUG-20260224-034 — EnsureInstalled middleware re-queries DB on every request
+- **Severity:** High
+- **Module:** Performance / Middleware
+- **Symptoms:** When `installed=true` in cache, the middleware still ran `User::query()->exists()` on every single request as "re-validation", adding unnecessary DB load.
+- **Fix summary:** Removed the re-validation block. When cache says installed, trust it. Cache is explicitly cleared during setup/teardown workflows.
+- **Files:** `app/Http/Middleware/EnsureInstalled.php`
+- **Status:** Fixed
+
+### BUG-20260224-035 — Backup cleanup only deletes .sql.gz, misses .sqlite.gz
+- **Severity:** Medium
+- **Module:** Admin / Backup
+- **Symptoms:** `cleanupOldBackups()` checked `str_ends_with($file, '.sql.gz')` only, so old SQLite backups (.sqlite.gz) accumulated indefinitely.
+- **Fix summary:** Added `|| str_ends_with($file, '.sqlite.gz')` to the cleanup condition.
+- **Files:** `app/Console/Commands/DatabaseBackup.php`
+- **Status:** Fixed
+
+### BUG-20260224-036 — FilamentShield plugin not registered in admin panel
+- **Severity:** Critical
+- **Module:** RBAC / Auth
+- **Symptoms:** `filament-shield` config existed and spatie/laravel-permission was installed, but the `FilamentShieldPlugin` was never registered in `AdminPanelProvider`. Shield's permission checks and policy generation had no effect.
+- **Fix summary:** Added `->plugin(FilamentShieldPlugin::make())` to the panel chain.
+- **Files:** `app/Providers/Filament/AdminPanelProvider.php`
+- **Status:** Fixed
+
+### BUG-20260224-037 — 7 PHI/clinical models missing Auditable trait
+- **Severity:** Medium
+- **Module:** Compliance / Audit
+- **Symptoms:** `Prescription`, `PrescriptionItem`, `LabResult`, `LabSample`, `VisitDiagnosis`, `PatientAllergy`, `PatientChronicCondition` modified patient health data without audit logging.
+- **Fix summary:** Added `use Auditable` trait to all 7 models.
+- **Files:** All 7 model files in `app/Models/`
+- **Status:** Fixed
+
+### BUG-20260224-038 — Missing inverse Eloquent relationships on 4 models
+- **Severity:** Medium
+- **Module:** Data Integrity / ORM
+- **Symptoms:** `Prescription` lacked `dispensations()`, `Visit` lacked `queueTickets()`, `DrugBatch` lacked `dispensationItems()`, `IcdCode` lacked `visitDiagnoses()` and `chronicConditions()`. Navigation from parent to children impossible without raw queries.
+- **Fix summary:** Added the missing `HasMany` relationships.
+- **Files:** `app/Models/Prescription.php`, `app/Models/Visit.php`, `app/Models/DrugBatch.php`, `app/Models/IcdCode.php`
+- **Status:** Fixed
+
+### BUG-20260224-039 — PharmacyInventoryService receiveToBatch ignores zero prices
+- **Severity:** High
+- **Module:** Pharmacy
+- **Symptoms:** `receiveToBatch()` used `int $unitCost = 0` and `if ($unitCost !== 0)` to decide whether to update batch pricing. A legitimate zero-cost donation item would never update the batch price.
+- **Fix summary:** Changed parameters to `?int $unitCost = null` / `?int $salePrice = null`. Changed guard from `!== 0` to `!== null`.
+- **Files:** `app/Services/Pharmacy/PharmacyInventoryService.php`
+- **Status:** Fixed
+
+### BUG-20260224-040 — DrugBatchResource allows editing quantity_received
+- **Severity:** High
+- **Module:** Pharmacy / Filament
+- **Symptoms:** `quantity_received` field was editable on existing batches, allowing manual tampering that bypasses stock movement tracking. Should only be set at creation or via `receiveToBatch()`.
+- **Fix summary:** Added `->disabled(fn (?DrugBatch $record) => $record !== null)->dehydrated()` to the field.
+- **Files:** `app/Filament/Resources/DrugBatchResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-041 — EditDispensation allows editing completed/cancelled records
+- **Severity:** High
+- **Module:** Pharmacy / Filament
+- **Symptoms:** No guard prevented editing a completed or cancelled dispensation. Users could modify finalized pharmacy records.
+- **Fix summary:** Added `authorizeAccess()` override that aborts with 403 for non-draft dispensations. Delete action now only visible for drafts.
+- **Files:** `app/Filament/Resources/DispensationResource/Pages/EditDispensation.php`
+- **Status:** Fixed
+
+### BUG-20260224-042 — QueueTicketResource missing confirmations and counter selection
+- **Severity:** Medium
+- **Module:** Queue / Filament
+- **Symptoms:** Call/Serve/No-show actions had no confirmation dialog — accidental clicks irreversible. Call action didn't allow selecting a counter. Token date/number were editable on existing tickets.
+- **Fix summary:** Added `->requiresConfirmation()` to all 3 actions. Added counter selection form to call action. Made `token_date` and `token_number` disabled on edit. Updated all status comparisons to use `QueueTicketStatus` enum.
+- **Files:** `app/Filament/Resources/QueueTicketResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-043 — DrugResource N+1 query on total_on_hand
+- **Severity:** Medium
+- **Module:** Pharmacy / Performance
+- **Symptoms:** The `total_on_hand` column executed a separate aggregate query per row in the table listing, causing N+1 performance issues.
+- **Fix summary:** Added `->modifyQueryUsing(fn ($query) => $query->withSum('batches', 'quantity_on_hand'))` to eagerly load the aggregate. Updated `state()` to read from the aggregate.
+- **Files:** `app/Filament/Resources/DrugResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-044 — StockMovementResource missing default sort
+- **Severity:** Low
+- **Module:** Pharmacy / Filament
+- **Symptoms:** Stock movements listed in arbitrary order. Most recent movements should appear first.
+- **Fix summary:** Added `->defaultSort('occurred_at', 'desc')` to the table.
+- **Files:** `app/Filament/Resources/StockMovementResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-045 — DispensationResource line_total not reactive
+- **Severity:** Medium
+- **Module:** Pharmacy / Filament
+- **Symptoms:** Changing `quantity` or `unit_price` in the dispensation items repeater did not update `line_total` in real-time. Users saw stale totals.
+- **Fix summary:** Made both `quantity` and `unit_price` reactive with `afterStateUpdated` callbacks that recalculate and set `line_total`.
+- **Files:** `app/Filament/Resources/DispensationResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-046 — Queue display view uses hardcoded English strings
+- **Severity:** Medium
+- **Module:** Queue / i18n
+- **Symptoms:** All UI strings in the queue display blade template were hardcoded in English, preventing future localization.
+- **Fix summary:** Created `lang/en/queue.php` translation file. Replaced all hardcoded strings with `__('queue.*')` helpers.
+- **Files:** `resources/views/livewire/queue/display.blade.php`, `lang/en/queue.php` (new)
+- **Status:** Fixed
+
+### BUG-20260224-047 — PharmacyInventoryTest used string assertions for enum-cast fields
+- **Severity:** Low
+- **Module:** Tests
+- **Symptoms:** After adding enum casts, test assertions like `assertSame('completed', $completed->status)` failed because `status` now returns an enum instance.
+- **Fix summary:** Updated all 3 failing assertions to compare against enum instances (`DispensationStatus::Completed`, `StockMovementType::Receive`, etc.). Added enum imports.
+- **Files:** `tests/Feature/PharmacyInventoryTest.php`
+- **Status:** Fixed

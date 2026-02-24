@@ -5,13 +5,44 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\PaymentMethod;
+use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
+
+    protected static function booted(): void
+    {
+        static::saved(function (Payment $payment) {
+            $payment->recalculateInvoice();
+        });
+
+        static::deleted(function (Payment $payment) {
+            $payment->recalculateInvoice();
+        });
+    }
+
+    /**
+     * Recalculate the parent invoice's paid amount and balance.
+     */
+    protected function recalculateInvoice(): void
+    {
+        $invoice = $this->invoice;
+        if (! $invoice) {
+            return;
+        }
+
+        $totalPaid = (int) $invoice->payments()->sum('amount');
+        $balance = (int) $invoice->total - $totalPaid;
+
+        $invoice->forceFill([
+            'paid' => $totalPaid,
+            'balance' => $balance,
+        ])->save();
+    }
 
     protected $fillable = [
         'invoice_id',

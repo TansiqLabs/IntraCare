@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Pharmacy;
 
+use App\Enums\DispensationStatus;
 use App\Models\Dispensation;
 use App\Models\DispensationItem;
 use App\Models\Drug;
@@ -21,8 +22,8 @@ final class PharmacyInventoryService
         Drug $drug,
         string $batchNumber,
         int $quantity,
-        int $unitCost = 0,
-        int $salePrice = 0,
+        ?int $unitCost = null,
+        ?int $salePrice = null,
         ?string $supplierName = null,
         ?\DateTimeInterface $expiryDate = null,
         ?\DateTimeInterface $receivedAt = null,
@@ -58,8 +59,8 @@ final class PharmacyInventoryService
                     'expiry_date' => $expiryDate?->format('Y-m-d'),
                     'quantity_received' => 0,
                     'quantity_on_hand' => 0,
-                    'unit_cost' => $unitCost,
-                    'sale_price' => $salePrice,
+                    'unit_cost' => $unitCost ?? 0,
+                    'sale_price' => $salePrice ?? 0,
                     'supplier_name' => $supplierName,
                     'received_at' => $receivedAt ?? now(),
                     'is_active' => true,
@@ -82,10 +83,10 @@ final class PharmacyInventoryService
             if ($receivedAt !== null) {
                 $batch->received_at = $receivedAt;
             }
-            if ($unitCost !== 0) {
+            if ($unitCost !== null) {
                 $batch->unit_cost = $unitCost;
             }
-            if ($salePrice !== 0) {
+            if ($salePrice !== null) {
                 $batch->sale_price = $salePrice;
             }
 
@@ -123,11 +124,11 @@ final class PharmacyInventoryService
         return DB::transaction(function () use ($dispensation, $performedBy, $dispensedAt, $excludeExpired) {
             $dispensation = Dispensation::query()->whereKey($dispensation->getKey())->lockForUpdate()->firstOrFail();
 
-            if ($dispensation->status === 'completed') {
+            if ($dispensation->status === DispensationStatus::Completed) {
                 return $dispensation->load('items');
             }
 
-            if ($dispensation->status !== 'draft') {
+            if ($dispensation->status !== DispensationStatus::Draft) {
                 throw new \RuntimeException('Only draft dispensations can be completed.');
             }
 
@@ -264,7 +265,7 @@ final class PharmacyInventoryService
                 ]);
             }
 
-            $dispensation->status = 'completed';
+            $dispensation->status = DispensationStatus::Completed;
             $dispensation->dispensed_by = $performedBy;
             $dispensation->dispensed_at = $dispensedAt;
             $dispensation->save();
@@ -290,11 +291,11 @@ final class PharmacyInventoryService
         return DB::transaction(function () use ($dispensation, $performedBy, $occurredAt, $reason) {
             $dispensation = Dispensation::query()->whereKey($dispensation->getKey())->lockForUpdate()->firstOrFail();
 
-            if ($dispensation->status === 'cancelled') {
+            if ($dispensation->status === DispensationStatus::Cancelled) {
                 return $dispensation->load('items');
             }
 
-            if ($dispensation->status !== 'completed') {
+            if ($dispensation->status !== DispensationStatus::Completed) {
                 throw new \RuntimeException('Only completed dispensations can be voided.');
             }
 
@@ -321,7 +322,7 @@ final class PharmacyInventoryService
                 );
             }
 
-            $dispensation->status = 'cancelled';
+            $dispensation->status = DispensationStatus::Cancelled;
             $dispensation->notes = trim(implode("\n", array_filter([
                 $dispensation->notes,
                 $reason ? ('VOID: '.$reason) : null,

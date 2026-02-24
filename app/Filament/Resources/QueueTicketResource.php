@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\QueueTicketResource\Pages;
+use App\Enums\QueueTicketStatus;
 use App\Models\QueueCounter;
 use App\Models\QueueDepartment;
 use App\Models\QueueTicket;
@@ -44,15 +45,17 @@ class QueueTicketResource extends Resource
                             ->disabled()
                             ->dehydrated(false),
                         Forms\Components\Select::make('status')
-                            ->options([
-                                'waiting' => 'Waiting',
-                                'called' => 'Called',
-                                'served' => 'Served',
-                                'no_show' => 'No-show',
-                            ])
+                            ->options(QueueTicketStatus::class)
                             ->required(),
-                        Forms\Components\DatePicker::make('token_date')->required(),
-                        Forms\Components\TextInput::make('token_number')->numeric()->required(),
+                        Forms\Components\DatePicker::make('token_date')
+                            ->required()
+                            ->disabled(fn (?QueueTicket $record) => $record !== null)
+                            ->dehydrated(),
+                        Forms\Components\TextInput::make('token_number')
+                            ->numeric()
+                            ->required()
+                            ->disabled(fn (?QueueTicket $record) => $record !== null)
+                            ->dehydrated(),
                     ])->columns(2),
             ]);
     }
@@ -67,13 +70,7 @@ class QueueTicketResource extends Resource
                 Tables\Columns\TextColumn::make('counter.code')->label('Counter')->toggleable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'waiting' => 'warning',
-                        'called' => 'info',
-                        'served' => 'success',
-                        'no_show' => 'danger',
-                        default => 'gray',
-                    })
+                    ->color(fn ($state): string => $state instanceof QueueTicketStatus ? $state->color() : 'gray')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('token_date')->date()->sortable(),
                 Tables\Columns\TextColumn::make('token_number')->sortable(),
@@ -85,12 +82,7 @@ class QueueTicketResource extends Resource
                     ->label('Department')
                     ->options(fn () => QueueDepartment::query()->orderBy('name')->pluck('name', 'id')->all()),
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'waiting' => 'Waiting',
-                        'called' => 'Called',
-                        'served' => 'Served',
-                        'no_show' => 'No-show',
-                    ]),
+                    ->options(QueueTicketStatus::class),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('issue')
@@ -118,29 +110,40 @@ class QueueTicketResource extends Resource
             ->actions([
                 Tables\Actions\Action::make('call')
                     ->label('Call')
-                    ->visible(fn (QueueTicket $record) => $record->status === 'waiting')
-                    ->action(function (QueueTicket $record) {
+                    ->requiresConfirmation()
+                    ->visible(fn (QueueTicket $record) => $record->status === QueueTicketStatus::Waiting)
+                    ->form([
+                        Forms\Components\Select::make('queue_counter_id')
+                            ->label('Counter')
+                            ->options(fn () => QueueCounter::query()->orderBy('code')->pluck('code', 'id')->all())
+                            ->nullable()
+                            ->helperText('Optional: select a counter for this ticket.'),
+                    ])
+                    ->action(function (QueueTicket $record, array $data) {
                         $record->forceFill([
-                            'status' => 'called',
+                            'status' => QueueTicketStatus::Called,
                             'called_at' => now(),
+                            'queue_counter_id' => $data['queue_counter_id'] ?? $record->queue_counter_id,
                         ])->save();
                     }),
                 Tables\Actions\Action::make('serve')
                     ->label('Serve')
-                    ->visible(fn (QueueTicket $record) => in_array($record->status, ['waiting', 'called'], true))
+                    ->requiresConfirmation()
+                    ->visible(fn (QueueTicket $record) => in_array($record->status, [QueueTicketStatus::Waiting, QueueTicketStatus::Called], true))
                     ->action(function (QueueTicket $record) {
                         $record->forceFill([
-                            'status' => 'served',
+                            'status' => QueueTicketStatus::Served,
                             'served_at' => now(),
                         ])->save();
                     }),
                 Tables\Actions\Action::make('noShow')
                     ->label('No-show')
                     ->color('danger')
-                    ->visible(fn (QueueTicket $record) => in_array($record->status, ['waiting', 'called'], true))
+                    ->requiresConfirmation()
+                    ->visible(fn (QueueTicket $record) => in_array($record->status, [QueueTicketStatus::Waiting, QueueTicketStatus::Called], true))
                     ->action(function (QueueTicket $record) {
                         $record->forceFill([
-                            'status' => 'no_show',
+                            'status' => QueueTicketStatus::NoShow,
                             'no_show_at' => now(),
                         ])->save();
                     }),

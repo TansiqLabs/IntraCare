@@ -75,4 +75,9 @@ class Visit extends Model
     {
         return $this->hasMany(Invoice::class);
     }
+
+    public function queueTickets(): HasMany
+    {
+        return $this->hasMany(QueueTicket::class);
+    }
 }

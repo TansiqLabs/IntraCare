@@ -41,7 +41,9 @@ class DrugBatchResource extends Resource
                         Forms\Components\TextInput::make('quantity_received')
                             ->numeric()
                             ->minValue(0)
-                            ->default(0),
+                            ->default(0)
+                            ->disabled(fn (?DrugBatch $record) => $record !== null)
+                            ->dehydrated(),
                         Forms\Components\TextInput::make('quantity_on_hand')
                             ->numeric()
                             ->minValue(0)

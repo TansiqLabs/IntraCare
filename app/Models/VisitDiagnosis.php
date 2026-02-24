@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\DiagnosisType;
+use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VisitDiagnosis extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
 
     protected $fillable = [
         'visit_id',

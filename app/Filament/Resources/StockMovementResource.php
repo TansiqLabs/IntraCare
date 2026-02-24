@@ -21,6 +21,7 @@ class StockMovementResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('occurred_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('occurred_at')->dateTime()->sortable(),
                 Tables\Columns\TextColumn::make('type')->badge()->sortable(),

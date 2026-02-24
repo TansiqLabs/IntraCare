@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Enums\DispensationStatus;
+use App\Enums\StockMovementType;
 use App\Models\Dispensation;
 use App\Models\DispensationItem;
 use App\Models\Drug;
@@ -51,7 +53,7 @@ final class PharmacyInventoryTest extends TestCase
 
         $movement = StockMovement::query()->where('drug_batch_id', $batch->getKey())->first();
         $this->assertNotNull($movement);
-        $this->assertSame('receive', $movement->type);
+        $this->assertSame(StockMovementType::Receive, $movement->type);
         $this->assertSame(100, (int) $movement->quantity);
     }
 
@@ -112,7 +114,7 @@ final class PharmacyInventoryTest extends TestCase
 
         $completed = $service->completeDispensation($dispensation, performedBy: $user->getKey());
 
-        $this->assertSame('completed', $completed->status);
+        $this->assertSame(DispensationStatus::Completed, $completed->status);
         $this->assertNotNull($completed->dispensed_at);
 
         $completed->load('items');
@@ -239,7 +241,7 @@ final class PharmacyInventoryTest extends TestCase
         $this->assertSame(7, (int) $batch2->quantity_on_hand);
 
         $voided = $service->voidCompletedDispensation($completed, performedBy: $user->getKey(), reason: 'Wrong patient');
-        $this->assertSame('cancelled', $voided->status);
+        $this->assertSame(DispensationStatus::Cancelled, $voided->status);
 
         $batch1->refresh();
         $batch2->refresh();

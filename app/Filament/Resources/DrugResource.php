@@ -72,7 +72,7 @@ class DrugResource extends Resource
                 Tables\Columns\TextColumn::make('barcode')->searchable()->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('total_on_hand')
                     ->label('On hand')
-                    ->state(fn (Drug $record) => $record->total_on_hand),
+                    ->state(fn (Drug $record) => (int) ($record->batches_sum_quantity_on_hand ?? $record->total_on_hand)),
                 Tables\Columns\TextColumn::make('reorder_level')->toggleable(),
                 Tables\Columns\IconColumn::make('is_active')->boolean()->sortable(),
                 Tables\Columns\TextColumn::make('created_at')->since()->toggleable(isToggledHiddenByDefault: true),
@@ -80,6 +80,7 @@ class DrugResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active'),
             ])
+            ->modifyQueryUsing(fn ($query) => $query->withSum('batches', 'quantity_on_hand'))
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])

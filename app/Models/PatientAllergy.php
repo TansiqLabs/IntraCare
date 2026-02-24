@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\AllergySeverity;
+use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PatientAllergy extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
 
     protected $fillable = [
         'patient_id',

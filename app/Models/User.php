@@ -22,14 +22,11 @@ class User extends Authenticatable
         'employee_id',
         'name',
         'email',
-        'email_verified_at',
         'phone',
         'avatar_path',
         'is_active',
         'preferences',
         'password',
-        'last_login_at',
-        'last_login_ip',
     ];
 
     protected $hidden = [

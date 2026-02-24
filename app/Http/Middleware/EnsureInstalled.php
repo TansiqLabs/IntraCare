@@ -42,12 +42,6 @@ class EnsureInstalled
         if ($installed === null) {
             $installed = User::query()->exists();
             cache()->put('intracare.installed', $installed, 3600);
-        } elseif ($installed === true) {
-            // Re-validate: if cache says installed but DB has no users, clear stale cache.
-            if (! User::query()->exists()) {
-                cache()->forget('intracare.installed');
-                $installed = false;
-            }
         }
 
         if (! $installed) {

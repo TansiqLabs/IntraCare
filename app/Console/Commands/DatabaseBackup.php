@@ -156,7 +156,7 @@ class DatabaseBackup extends Command
         $deleted = 0;
 
         foreach ($disk->allFiles('database') as $file) {
-            if (str_ends_with($file, '.sql.gz') && $disk->lastModified($file) < $cutoff) {
+            if ((str_ends_with($file, '.sql.gz') || str_ends_with($file, '.sqlite.gz')) && $disk->lastModified($file) < $cutoff) {
                 $disk->delete($file);
                 $deleted++;
             }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\DispensationResource\Pages;
+use App\Enums\DispensationStatus;
 use App\Models\Dispensation;
 use App\Services\Pharmacy\PharmacyInventoryService;
 use Filament\Forms;
@@ -39,12 +40,8 @@ class DispensationResource extends Resource
                             ->preload()
                             ->nullable(),
                         Forms\Components\Select::make('status')
-                            ->options([
-                                'draft' => 'Draft',
-                                'completed' => 'Completed',
-                                'cancelled' => 'Cancelled',
-                            ])
-                            ->default('draft')
+                            ->options(DispensationStatus::class)
+                            ->default(DispensationStatus::Draft)
                             ->disabled(),
                         Forms\Components\DateTimePicker::make('dispensed_at')
                             ->disabled()
@@ -92,13 +89,20 @@ class DispensationResource extends Resource
                                 Forms\Components\TextInput::make('quantity')
                                     ->numeric()
                                     ->minValue(1)
-                                    ->required(),
+                                    ->required()
+                                    ->reactive()
+                                    ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                        $set('line_total', ($get('quantity') ?? 0) * ($get('unit_price') ?? 0));
+                                    }),
                                 Forms\Components\TextInput::make('unit_price')
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0)
                                     ->helperText('Smallest currency unit (e.g. paisa). Leave 0 to use batch price.')
-                                    ->reactive(),
+                                    ->reactive()
+                                    ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                        $set('line_total', ($get('quantity') ?? 0) * ($get('unit_price') ?? 0));
+                                    }),
                                 Forms\Components\TextInput::make('line_total')
                                     ->numeric()
                                     ->default(0)
@@ -134,7 +138,7 @@ class DispensationResource extends Resource
                     ->label('Complete')
                     ->icon('heroicon-o-check')
                     ->requiresConfirmation()
-                    ->visible(fn (Dispensation $record) => $record->status === 'draft')
+                    ->visible(fn (Dispensation $record) => $record->status === DispensationStatus::Draft)
                     ->action(function (Dispensation $record): void {
                         $service = app(PharmacyInventoryService::class);
                         $service->completeDispensation($record, performedBy: auth()->id());
@@ -149,7 +153,7 @@ class DispensationResource extends Resource
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->visible(fn (Dispensation $record) => $record->status === 'completed')
+                    ->visible(fn (Dispensation $record) => $record->status === DispensationStatus::Completed)
                     ->form([
                         Forms\Components\Textarea::make('reason')
                             ->label('Reason')
@@ -169,9 +173,9 @@ class DispensationResource extends Resource
                     ->label('Cancel')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->visible(fn (Dispensation $record) => $record->status === 'draft')
+                    ->visible(fn (Dispensation $record) => $record->status === DispensationStatus::Draft)
                     ->action(function (Dispensation $record): void {
-                        $record->update(['status' => 'cancelled']);
+                        $record->update(['status' => DispensationStatus::Cancelled]);
 
                         Notification::make()
                             ->title('Dispensation cancelled')

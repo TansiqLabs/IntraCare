@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Queue;
 
+use App\Enums\QueueTicketStatus;
 use App\Models\QueueDailySequence;
 use App\Models\QueueDepartment;
 use App\Models\QueueTicket;
@@ -55,7 +56,7 @@ final class QueueTokenService
                 'token_date' => $date,
                 'token_number' => $seq->last_number,
                 'token_display' => $display,
-                'status' => 'waiting',
+                'status' => QueueTicketStatus::Waiting,
                 'created_by' => $createdBy,
             ]);
         }, 3);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\QueueTicketStatus;
 use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,6 +33,7 @@ class QueueTicket extends Model
     protected function casts(): array
     {
         return [
+            'status' => QueueTicketStatus::class,
             'token_date' => 'date',
             'token_number' => 'integer',
             'called_at' => 'datetime',

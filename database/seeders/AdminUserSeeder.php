@@ -19,9 +19,10 @@ class AdminUserSeeder extends Seeder
                 // Do NOT wrap in Hash::make() — User model's 'hashed' cast handles it.
                 'password' => 'password',
                 'is_active' => true,
-                'email_verified_at' => now(),
             ]
         );
+
+        $admin->forceFill(['email_verified_at' => now()])->save();
 
         $admin->assignRole('Admin');
     }

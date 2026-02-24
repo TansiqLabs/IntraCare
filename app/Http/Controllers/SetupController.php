@@ -65,8 +65,9 @@ class SetupController extends Controller
             'email' => $validated['email'],
             'password' => $validated['password'],
             'is_active' => true,
-            'email_verified_at' => now(),
         ]);
+
+        $admin->forceFill(['email_verified_at' => now()])->save();
 
         $admin->assignRole('Admin');
 

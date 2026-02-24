@@ -48,4 +48,9 @@ class DrugBatch extends Model
     {
         return $this->hasMany(StockMovement::class, 'drug_batch_id');
     }
+
+    public function dispensationItems(): HasMany
+    {
+        return $this->hasMany(DispensationItem::class, 'drug_batch_id');
+    }
 }

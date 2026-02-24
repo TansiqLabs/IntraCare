@@ -46,4 +46,18 @@ class IcdCode extends Model
     {
         return $query->where('version', IcdVersion::Icd11);
     }
+
+    // ──────────────────────────────────────────────
+    // Relationships
+    // ──────────────────────────────────────────────
+
+    public function visitDiagnoses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(VisitDiagnosis::class);
+    }
+
+    public function chronicConditions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PatientChronicCondition::class);
+    }
 }

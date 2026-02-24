@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\DispensationStatus;
 use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
@@ -26,6 +27,7 @@ class Dispensation extends Model
     protected function casts(): array
     {
         return [
+            'status' => DispensationStatus::class,
             'dispensed_at' => 'datetime',
         ];
     }
