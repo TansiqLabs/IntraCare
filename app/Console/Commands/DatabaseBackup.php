@@ -60,7 +60,8 @@ class DatabaseBackup extends Command
         $password = config('database.connections.pgsql.password');
 
         $command = sprintf(
-            'PGPASSWORD=%s pg_dump -h %s -p %s -U %s -Fc --no-owner --no-acl %s | gzip > %s',
+            // Plain SQL + gzip => easy to restore with psql and consistent with .sql.gz extension.
+            'PGPASSWORD=%s pg_dump -h %s -p %s -U %s --no-owner --no-acl %s | gzip > %s',
             escapeshellarg($password),
             escapeshellarg($host),
             escapeshellarg((string) $port),

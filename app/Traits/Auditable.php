@@ -72,6 +72,8 @@ trait Auditable
             'user_id' => auth()->id(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
+            // AuditLog has $timestamps=false; created_at is required by schema.
+            'created_at' => now(),
         ]);
     }
 }

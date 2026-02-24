@@ -1,7 +1,7 @@
 # IntraCare — Hospital Management System (HMS)
 
 > **AI Context File** — Read this file at the start of every session to restore full project context.
-> Last updated: 2026-02-25
+> Last updated: 2026-02-24
 
 ---
 
@@ -74,6 +74,16 @@
 - Thermal POS receipt printing (invoices, tokens, labels).
 - A4/Letter PDF generation for lab reports, prescriptions.
 - Barcode generation on labels (Code-128 / QR).
+
+### 3.8 Testing & Quality Assurance (Zero Bug Policy)
+- **Before delivering/finalizing any module**, write comprehensive automated tests (Pest or PHPUnit).
+- Tests must cover:
+	- Happy paths, edge cases, and negative inputs/validation
+	- Authorization (RBAC) and audit trail behavior for PHI
+	- Database constraints (FKs, unique indexes), transactional integrity
+	- Security regressions (OWASP Top-10 relevant to the module)
+- **Local execution simulation** is mandatory: reason through full data flow end-to-end and verify with automated tests.
+- Hidden/production-like scenarios must be anticipated (concurrency, retries, idempotency where relevant).
 
 ---
 
@@ -208,5 +218,6 @@ app/
 - **README.md**: Replaced default Laravel README with comprehensive IntraCare documentation — prerequisites, installation steps, daily operations, backup guide, troubleshooting.
 - **Frontend Build**: `npm install` + `npm run build` — Vite + Tailwind CSS v4 compiled successfully (43 KB CSS, 37 KB JS).
 - **lang/en/setup.php**: Created localization strings for setup wizard.
-- **Pending**: PostgreSQL database creation (sudo password required), `php artisan migrate`, `php artisan db:seed`, then visit `/setup` to create admin.
+- **DB**: PostgreSQL user+database creation command executed successfully (requires sudo password).
+- **Pending**: `php artisan migrate`, `php artisan db:seed`, then visit `/setup` to create admin.
 

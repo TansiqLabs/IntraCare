@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('normal_range_child')->nullable();
             $table->string('method')->nullable(); // methodology used
             $table->string('field_type', 20)->default('numeric'); // numeric, text, select, boolean
-            $table->jsonb('field_options')->nullable(); // for select: ["Positive","Negative"]
+                $table->json('field_options')->nullable(); // for select: ["Positive","Negative"]
             $table->integer('sort_order')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();

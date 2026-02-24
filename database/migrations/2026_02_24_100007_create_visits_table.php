@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('chief_complaint')->nullable();
             $table->text('examination_notes')->nullable();
             $table->text('plan')->nullable();
-            $table->jsonb('vitals')->nullable(); // {bp, temp, pulse, spo2, weight, height, bmi}
+                $table->json('vitals')->nullable(); // {bp, temp, pulse, spo2, weight, height, bmi}
             $table->timestamp('visited_at');
             $table->timestamps();
             $table->softDeletes();

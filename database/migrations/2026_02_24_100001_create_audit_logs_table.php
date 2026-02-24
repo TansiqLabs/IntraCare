@@ -13,8 +13,8 @@ return new class extends Migration
             $table->string('auditable_type');
             $table->string('auditable_id', 26);
             $table->string('event', 20); // created, updated, deleted, restored, accessed
-            $table->jsonb('old_values')->nullable();
-            $table->jsonb('new_values')->nullable();
+            $table->json('old_values')->nullable();
+            $table->json('new_values')->nullable();
             $table->string('user_id', 26)->nullable();
             $table->string('ip_address', 45)->nullable();
             $table->string('user_agent')->nullable();

@@ -42,14 +42,20 @@ class SetupController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        // Update app name
-        $this->updateEnv('APP_NAME', $validated['hospital_name']);
+        // Update app name (skip touching .env in tests)
+        if (! app()->environment('testing')) {
+            $this->updateEnv('APP_NAME', $validated['hospital_name']);
+        }
 
         // Seed roles and permissions
-        Artisan::call('db:seed', [
-            '--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder',
-            '--force' => true,
-        ]);
+        if (app()->environment('testing')) {
+            (new \Database\Seeders\RolesAndPermissionsSeeder())->run();
+        } else {
+            Artisan::call('db:seed', [
+                '--class' => 'Database\\Seeders\\RolesAndPermissionsSeeder',
+                '--force' => true,
+            ]);
+        }
 
         // Create admin user
         $admin = User::create([
@@ -63,8 +69,10 @@ class SetupController extends Controller
 
         $admin->assignRole('Admin');
 
-        // Create storage symlink
-        Artisan::call('storage:link');
+        // Create storage symlink (skip in tests)
+        if (! app()->environment('testing')) {
+            Artisan::call('storage:link');
+        }
 
         // Clear installation cache
         cache()->forget('intracare.installed');

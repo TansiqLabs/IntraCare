@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -19,6 +20,14 @@ class EnsureInstalled
     {
         // Skip if already on setup route
         if ($request->routeIs('setup.*')) {
+            return $next($request);
+        }
+
+        // During first install (before migrations) and during some test setups,
+        // the users table may not exist yet. Don't hard-fail requests.
+        if (! Schema::hasTable('users')) {
+            cache()->forget('intracare.installed');
+
             return $next($request);
         }
 
