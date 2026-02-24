@@ -17,6 +17,6 @@ enum BloodGroup: string
 
     public function label(): string
     {
-        return $this->value;
+        return __($this->value);
     }
 }

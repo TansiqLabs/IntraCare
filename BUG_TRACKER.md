@@ -727,3 +727,138 @@ _None yet._
 - **Fix summary:** Added `Cache::lock('intracare.setup', 30)` with a non-blocking `->get()` to acquire an atomic lock before proceeding. Added a second `User::count() > 0` check inside the lock (double-check locking pattern). The lock is released in a `finally` block to guarantee cleanup. Added `use Illuminate\Support\Facades\Cache` import.
 - **Files:** `app/Http/Controllers/SetupController.php`
 - **Status:** Fixed
+
+### BUG-20260224-084 — DispensationResource bulkActions wraps hidden delete instead of empty array
+- **Severity:** Low
+- **Module:** Pharmacy
+- **Symptoms:** `DispensationResource` table `bulkActions` wraps a hidden `DeleteBulkAction` inside a `BulkActionGroup`. Although functionally invisible, it exposes an unnecessary action class and adds dead code.
+- **Root cause:** Developer hid the delete action instead of removing bulk actions entirely, since dispensations should never be bulk-deleted.
+- **Fix summary:** Replaced `->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden()])])` with `->bulkActions([])`.
+- **Files:** `app/Filament/Resources/DispensationResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-085 — StockMovement model missing Auditable trait
+- **Severity:** High
+- **Module:** Pharmacy / Compliance
+- **Symptoms:** `StockMovement` records inventory changes (receive, dispense, adjust, return) but has no audit logging. Per ai-context.md §3.5, all models touching financial or clinical data must use the `Auditable` trait.
+- **Root cause:** Trait was omitted when the model was created.
+- **Fix summary:** Added `use App\Traits\Auditable;` import and `use Auditable;` trait to the model class.
+- **Files:** `app/Models/StockMovement.php`
+- **Status:** Fixed
+
+### BUG-20260224-086 — LabDepartment model missing Auditable trait
+- **Severity:** Medium
+- **Module:** Lab / Compliance
+- **Symptoms:** `LabDepartment` defines lab department configuration but changes are not audit-logged. Configuration changes to departments affect lab workflow and should be tracked.
+- **Root cause:** Trait was omitted when the model was created.
+- **Fix summary:** Added `use App\Traits\Auditable;` import and `use Auditable;` trait to the model class.
+- **Files:** `app/Models/LabDepartment.php`
+- **Status:** Fixed
+
+### BUG-20260224-087 — LabSampleType model missing Auditable trait
+- **Severity:** Medium
+- **Module:** Lab / Compliance
+- **Symptoms:** `LabSampleType` defines sample type configuration but changes are not audit-logged. Lab sample type changes affect test processing workflows.
+- **Root cause:** Trait was omitted when the model was created.
+- **Fix summary:** Added `use App\Traits\Auditable;` import and `use Auditable;` trait to the model class.
+- **Files:** `app/Models/LabSampleType.php`
+- **Status:** Fixed
+
+### BUG-20260224-088 — IcdCode model missing Auditable trait
+- **Severity:** Medium
+- **Module:** Patient EHR / Compliance
+- **Symptoms:** `IcdCode` is a reference data model used in clinical diagnoses. Changes to ICD codes (additions, deactivations) are not audit-logged, violating the audit requirement for clinical data models.
+- **Root cause:** Trait was omitted when the model was created.
+- **Fix summary:** Added `use App\Traits\Auditable;` import and `use Auditable;` trait to the model class.
+- **Files:** `app/Models/IcdCode.php`
+- **Status:** Fixed
+
+### BUG-20260224-089 — QueueTicketResource edit form counter dropdown shows all counters globally
+- **Severity:** Medium
+- **Module:** Queue
+- **Symptoms:** When editing a queue ticket, the `queue_counter_id` dropdown shows all counters from all departments instead of filtering by the selected `queue_department_id`. Users could accidentally assign a ticket to a counter in a different department.
+- **Root cause:** The counter Select field had no relationship to the department Select field; it loaded all `QueueCounter` records globally.
+- **Fix summary:** Made `queue_department_id` Select reactive with `->afterStateUpdated()` that clears the counter selection when department changes. Made `queue_counter_id` options load dynamically via `->options(fn (Forms\Get $get) => ...)` filtering by the selected department and `is_active = true`.
+- **Files:** `app/Filament/Resources/QueueTicketResource.php`
+- **Status:** Fixed
+
+### BUG-20260224-090 — drug_batches migration uses cascadeOnDelete contradicting app-level delete guards
+- **Severity:** Critical
+- **Module:** Pharmacy / Database
+- **Symptoms:** The `drug_batches` migration uses `cascadeOnDelete()` on the `drug_id` foreign key. If a drug record is deleted, all its batches (which may have stock movement history) are silently cascade-deleted at the database level, bypassing the application-level `restrictedDelete()` guard on the Drug model.
+- **Root cause:** Migration was written with cascade delete before the application-level guards were implemented.
+- **Fix summary:** Changed `->cascadeOnDelete()` to `->restrictOnDelete()` on the `drug_id` foreign key so that the database enforces referential integrity and prevents accidental deletion of drugs with existing batches.
+- **Files:** `database/migrations/2026_02_24_120002_create_drug_batches_table.php`
+- **Status:** Fixed
+
+### BUG-20260224-091 — EnsureUserIsActive middleware uses hardcoded English strings
+- **Severity:** Low
+- **Module:** Middleware / i18n
+- **Symptoms:** The `EnsureUserIsActive` middleware returns hardcoded English strings ('Account deactivated', 'Your account has been deactivated...') in its abort response. Per ai-context.md §3.6, all user-facing strings must use `__()`.
+- **Root cause:** Middleware was written with literal English strings.
+- **Fix summary:** Wrapped both strings in `__()` translation helper calls.
+- **Files:** `app/Http/Middleware/EnsureUserIsActive.php`
+- **Status:** Fixed
+
+### BUG-20260224-092 — welcome.blade.php contains hardcoded English strings
+- **Severity:** Low
+- **Module:** UI / i18n
+- **Symptoms:** The welcome/landing page (`welcome.blade.php`) contains five hardcoded English strings including the page heading, description, button labels, and footer text. Per ai-context.md §3.6, all UI strings must use `__()` or `trans()`.
+- **Root cause:** Template was written with literal English strings.
+- **Fix summary:** Replaced all hardcoded strings with `{{ __('welcome.*') }}` translation helper calls.
+- **Files:** `resources/views/welcome.blade.php`
+- **Status:** Fixed
+
+### BUG-20260224-093 — queue/display.blade.php hardcoded "Queue Display" in title tag
+- **Severity:** Low
+- **Module:** Queue / i18n
+- **Symptoms:** The queue display page has a hardcoded `<title>Queue Display</title>` instead of using the translation helper.
+- **Root cause:** Template was written with a literal English title.
+- **Fix summary:** Changed `<title>` content to `{{ __('queue.display_title') }}`.
+- **Files:** `resources/views/queue/display.blade.php`
+- **Status:** Fixed
+
+### BUG-20260224-094 — BloodGroup enum label() returns raw value without __() for i18n
+- **Severity:** Low
+- **Module:** Patient EHR / i18n
+- **Symptoms:** `BloodGroup::label()` returns `$this->value` directly (e.g., "A+", "O-") without passing through `__()`. While blood group labels are unlikely to need translation, this violates the project's blanket i18n rule.
+- **Root cause:** Enum was written returning the raw value as label.
+- **Fix summary:** Changed `return $this->value` to `return __($this->value)` in the `label()` method.
+- **Files:** `app/Enums/BloodGroup.php`
+- **Status:** Fixed
+
+### BUG-20260224-095 — QueueCounter and QueueDepartment models missing Auditable trait
+- **Severity:** Medium
+- **Module:** Queue / Compliance
+- **Symptoms:** `QueueCounter` and `QueueDepartment` are configuration models that define the queue system structure. Changes to counters and departments affect patient routing but are not audit-logged.
+- **Root cause:** Traits were omitted when the models were created.
+- **Fix summary:** Added `use App\Traits\Auditable;` import and `use Auditable;` trait to both model classes.
+- **Files:** `app/Models/QueueCounter.php`, `app/Models/QueueDepartment.php`
+- **Status:** Fixed
+
+### BUG-20260224-096 — QueueDailySequence model missing Auditable trait
+- **Severity:** Low
+- **Module:** Queue / Compliance
+- **Symptoms:** `QueueDailySequence` tracks daily token number sequences per department. While primarily auto-generated, manual resets or adjustments should be audit-logged.
+- **Root cause:** Trait was omitted when the model was created.
+- **Fix summary:** Added `use App\Traits\Auditable;` import and `use Auditable;` trait to the model class.
+- **Files:** `app/Models/QueueDailySequence.php`
+- **Status:** Fixed
+
+### BUG-20260224-097 — payments migration uses cascadeOnDelete on invoice_id foreign key
+- **Severity:** Critical
+- **Module:** Billing / Database
+- **Symptoms:** The `payments` migration uses `cascadeOnDelete()` on the `invoice_id` foreign key. If an invoice record is deleted, all associated payment records are silently cascade-deleted, destroying financial history. This contradicts the application's soft-delete pattern on invoices and violates financial record retention requirements.
+- **Root cause:** Migration was written with cascade delete without considering that payment records must be preserved for audit and accounting purposes.
+- **Fix summary:** Changed `->cascadeOnDelete()` to `->restrictOnDelete()` on the `invoice_id` foreign key to prevent deletion of invoices that have associated payments.
+- **Files:** `database/migrations/2026_02_24_100021_create_payments_table.php`
+- **Status:** Fixed
+
+### BUG-20260224-098 — Missing automated test coverage for recent bug fixes
+- **Severity:** Low
+- **Module:** Tests
+- **Symptoms:** Bugs BUG-084 through BUG-097 introduced code changes (Auditable traits, i18n wrappers, restrictOnDelete migrations, form filtering) that have no corresponding automated tests. Per ai-context.md §3.8 (Zero Bug Policy), every module should have comprehensive test coverage.
+- **Root cause:** Bug fixes were applied without writing accompanying tests.
+- **Fix summary:** Documented as technical debt. Test coverage for these fixes should be added in a dedicated testing sprint.
+- **Files:** `tests/`
+- **Status:** Open — documented for future sprint

@@ -31,7 +31,7 @@ return new class extends Migration
             $table->index(['drug_id', 'expiry_date']);
             $table->index(['quantity_on_hand']);
 
-            $table->foreign('drug_id')->references('id')->on('drugs')->cascadeOnDelete();
+            $table->foreign('drug_id')->references('id')->on('drugs')->restrictOnDelete();
         });
     }
 

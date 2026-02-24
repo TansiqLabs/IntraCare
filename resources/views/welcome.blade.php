@@ -10,22 +10,22 @@
 </head>
 <body class="min-h-screen bg-gray-950 text-gray-100 flex items-center justify-center p-6">
     <div class="max-w-xl w-full bg-gray-900 border border-gray-800 rounded-2xl p-6">
-        <h1 class="text-2xl font-bold text-white">IntraCare HMS is running ✅</h1>
+        <h1 class="text-2xl font-bold text-white">{{ __('welcome.running') }}</h1>
         <p class="text-gray-400 mt-2">
-            This system is designed to run <span class="text-gray-200 font-medium">offline on your LAN</span>.
+            {{ __('welcome.offline_description') }}
         </p>
 
         <div class="mt-6 flex flex-col sm:flex-row gap-3">
             <a href="/admin" class="inline-flex justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-500 transition">
-                Go to Admin Panel
+                {{ __('welcome.go_to_admin') }}
             </a>
             <a href="/setup" class="inline-flex justify-center rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-semibold text-gray-100 hover:bg-gray-700 transition">
-                Setup (first install)
+                {{ __('welcome.setup_first_install') }}
             </a>
         </div>
 
         <p class="text-xs text-gray-500 mt-6">
-            No external CDN or internet dependency is required for runtime.
+            {{ __('welcome.no_external_cdn') }}
         </p>
     </div>
 </body>

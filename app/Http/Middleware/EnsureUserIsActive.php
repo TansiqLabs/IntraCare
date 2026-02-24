@@ -30,8 +30,8 @@ class EnsureUserIsActive
             return redirect()
                 ->route('filament.admin.auth.login')
                 ->with('notification', [
-                    'title' => 'Account deactivated',
-                    'body' => 'Your account has been deactivated. Please contact an administrator.',
+                    'title' => __('Account deactivated'),
+                    'body' => __('Your account has been deactivated. Please contact an administrator.'),
                     'status' => 'danger',
                 ]);
         }

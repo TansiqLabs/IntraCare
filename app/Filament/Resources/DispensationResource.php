@@ -184,12 +184,7 @@ class DispensationResource extends Resource
                     }),
                 Tables\Actions\EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => false),
-                ]),
-            ]);
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array

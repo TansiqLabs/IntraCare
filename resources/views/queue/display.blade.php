@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Queue Display — {{ $department->name }} — {{ config('app.name') }}</title>
+    <title>{{ __('queue.display_title') }} — {{ $department->name }} — {{ config('app.name') }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles

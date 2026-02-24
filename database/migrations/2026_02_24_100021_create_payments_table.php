@@ -18,7 +18,7 @@ return new class extends Migration
             $table->timestamp('paid_at');
             $table->timestamps();
 
-            $table->foreign('invoice_id')->references('id')->on('invoices')->cascadeOnDelete();
+            $table->foreign('invoice_id')->references('id')->on('invoices')->restrictOnDelete();
             $table->foreign('received_by')->references('id')->on('users')->nullOnDelete();
         });
     }

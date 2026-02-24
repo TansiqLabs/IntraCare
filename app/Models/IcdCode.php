@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\IcdVersion;
+use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 
 class IcdCode extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
 
     protected $fillable = [
         'code',

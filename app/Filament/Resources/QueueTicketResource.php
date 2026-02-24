@@ -35,10 +35,24 @@ class QueueTicketResource extends Resource
                             ->label('Department')
                             ->required()
                             ->options(fn () => QueueDepartment::query()->orderBy('name')->pluck('name', 'id')->all())
-                            ->searchable(),
+                            ->searchable()
+                            ->reactive()
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('queue_counter_id', null)),
                         Forms\Components\Select::make('queue_counter_id')
                             ->label('Counter')
-                            ->options(fn () => QueueCounter::query()->orderBy('code')->pluck('code', 'id')->all())
+                            ->options(function (Forms\Get $get) {
+                                $deptId = $get('queue_department_id');
+                                if (! $deptId) {
+                                    return [];
+                                }
+
+                                return QueueCounter::query()
+                                    ->where('queue_department_id', $deptId)
+                                    ->where('is_active', true)
+                                    ->orderBy('code')
+                                    ->pluck('code', 'id')
+                                    ->all();
+                            })
                             ->searchable()
                             ->nullable(),
                         Forms\Components\TextInput::make('token_display')
