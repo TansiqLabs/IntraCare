@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\InvoiceStatus;
 use App\Enums\PaymentMethod;
 use App\Traits\Auditable;
 use App\Traits\HasUlid;
@@ -26,7 +27,7 @@ class Payment extends Model
     }
 
     /**
-     * Recalculate the parent invoice's paid amount and balance.
+     * Recalculate the parent invoice's paid amount, balance, and status.
      */
     protected function recalculateInvoice(): void
     {
@@ -38,9 +39,21 @@ class Payment extends Model
         $totalPaid = (int) $invoice->payments()->sum('amount');
         $balance = (int) $invoice->total - $totalPaid;
 
+        // Auto-transition invoice status based on payment state,
+        // but never override Cancelled or Refunded statuses.
+        $status = $invoice->status;
+        if (! in_array($status, [InvoiceStatus::Cancelled, InvoiceStatus::Refunded], true)) {
+            $status = match (true) {
+                $balance <= 0 && $totalPaid > 0 => InvoiceStatus::Paid,
+                $totalPaid > 0 => InvoiceStatus::Partial,
+                default => InvoiceStatus::Issued,
+            };
+        }
+
         $invoice->forceFill([
             'paid' => $totalPaid,
             'balance' => $balance,
+            'status' => $status,
         ])->save();
     }
 

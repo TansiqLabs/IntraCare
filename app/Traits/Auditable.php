@@ -16,18 +16,30 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 trait Auditable
 {
+    /**
+     * Attribute names to exclude from audit log values (e.g. password hashes).
+     * Override in models to add more.
+     */
+    protected function auditExclude(): array
+    {
+        return [];
+    }
+
     public static function bootAuditable(): void
     {
         static::created(function (Model $model) {
-            static::logAudit($model, 'created', [], $model->getAttributes());
+            $exclude = static::resolveAuditExclusions($model);
+            $newValues = array_diff_key($model->getAttributes(), array_flip($exclude));
+            static::logAudit($model, 'created', [], $newValues);
         });
 
         static::updated(function (Model $model) {
             $original = $model->getOriginal();
             $changed = $model->getChanges();
+            $exclude = static::resolveAuditExclusions($model);
 
             // Remove timestamps from diff to reduce noise
-            $ignored = ['updated_at', 'remember_token'];
+            $ignored = array_merge(['updated_at', 'remember_token'], $exclude);
             $oldValues = [];
             $newValues = [];
 
@@ -48,14 +60,32 @@ trait Auditable
             $event = (method_exists($model, 'isForceDeleting') && $model->isForceDeleting())
                 ? 'force_deleted'
                 : 'deleted';
-            static::logAudit($model, $event, $model->getAttributes(), []);
+            $exclude = static::resolveAuditExclusions($model);
+            $oldValues = array_diff_key($model->getAttributes(), array_flip($exclude));
+            static::logAudit($model, $event, $oldValues, []);
         });
 
         if (in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive(static::class))) {
             static::restored(function (Model $model) {
-                static::logAudit($model, 'restored', [], $model->getAttributes());
+                $exclude = static::resolveAuditExclusions($model);
+                $newValues = array_diff_key($model->getAttributes(), array_flip($exclude));
+                static::logAudit($model, 'restored', [], $newValues);
             });
         }
+    }
+
+    /**
+     * Resolve the combined list of attributes to always exclude from audit logging.
+     */
+    protected static function resolveAuditExclusions(Model $model): array
+    {
+        $base = ['password', 'remember_token'];
+
+        if (method_exists($model, 'auditExclude')) {
+            return array_merge($base, $model->auditExclude());
+        }
+
+        return $base;
     }
 
     public function auditLogs(): MorphMany

@@ -14,6 +14,14 @@ class StockMovementResource extends Resource
 {
     protected static ?string $model = StockMovement::class;
 
+    /**
+     * Stock movements are system-generated only (via PharmacyInventoryService).
+     */
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-arrows-right-left';
     protected static ?string $navigationGroup = 'Pharmacy';
     protected static ?int $navigationSort = 33;

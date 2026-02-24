@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Drug extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
 
     protected $fillable = [
         'generic_name',
@@ -47,6 +48,11 @@ class Drug extends Model
         return $this->hasMany(DispensationItem::class);
     }
 
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
     public function getDisplayNameAttribute(): string
     {
         $parts = [trim((string) $this->generic_name)];
@@ -68,7 +74,12 @@ class Drug extends Model
 
     public function getTotalOnHandAttribute(): int
     {
-        return (int) $this->batches()->sum('quantity_on_hand');
+        return (int) $this->batches()
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('expiry_date')->orWhere('expiry_date', '>=', now()->toDateString());
+            })
+            ->sum('quantity_on_hand');
     }
 
     public function isLowStock(): bool

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Traits\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DrugBatch extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
 
     protected $fillable = [
         'drug_id',
@@ -42,6 +43,11 @@ class DrugBatch extends Model
     public function drug(): BelongsTo
     {
         return $this->belongsTo(Drug::class);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 
     public function movements(): HasMany

@@ -57,6 +57,102 @@ final class PharmacyInventoryTest extends TestCase
         $this->assertSame(100, (int) $movement->quantity);
     }
 
+    public function test_receive_to_batch_adds_stock_to_existing_batch(): void
+    {
+        $user = User::factory()->create();
+
+        $drug = Drug::create([
+            'generic_name' => 'Amoxicillin',
+            'is_active' => true,
+        ]);
+
+        $service = app(PharmacyInventoryService::class);
+
+        // First receive creates the batch
+        $batch = $service->receiveToBatch(
+            drug: $drug,
+            batchNumber: 'AMX-001',
+            quantity: 50,
+            unitCost: 40,
+            salePrice: 80,
+            performedBy: $user->getKey(),
+        );
+
+        $this->assertSame(50, (int) $batch->quantity_on_hand);
+
+        // Second receive adds to the same batch
+        $batch2 = $service->receiveToBatch(
+            drug: $drug,
+            batchNumber: 'AMX-001',
+            quantity: 30,
+            unitCost: 40,
+            salePrice: 80,
+            performedBy: $user->getKey(),
+        );
+
+        $this->assertTrue($batch->is($batch2), 'Expected same batch record.');
+        $batch->refresh();
+        $this->assertSame(80, (int) $batch->quantity_received);
+        $this->assertSame(80, (int) $batch->quantity_on_hand);
+        $this->assertSame(2, StockMovement::query()->where('drug_batch_id', $batch->getKey())->where('type', 'receive')->count());
+    }
+
+    public function test_fefo_skips_expired_batches(): void
+    {
+        $user = User::factory()->create();
+
+        $drug = Drug::create([
+            'generic_name' => 'Ibuprofen',
+            'is_active' => true,
+        ]);
+
+        // Expired batch (should be skipped)
+        DrugBatch::create([
+            'drug_id' => $drug->getKey(),
+            'batch_number' => 'IBU-EXPIRED',
+            'expiry_date' => now()->subDay()->toDateString(),
+            'quantity_received' => 50,
+            'quantity_on_hand' => 50,
+            'unit_cost' => 30,
+            'sale_price' => 60,
+            'received_at' => now()->subMonth(),
+            'is_active' => true,
+        ]);
+
+        // Valid batch
+        $validBatch = DrugBatch::create([
+            'drug_id' => $drug->getKey(),
+            'batch_number' => 'IBU-VALID',
+            'expiry_date' => now()->addMonths(6)->toDateString(),
+            'quantity_received' => 20,
+            'quantity_on_hand' => 20,
+            'unit_cost' => 30,
+            'sale_price' => 60,
+            'received_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $dispensation = Dispensation::create(['status' => 'draft']);
+
+        DispensationItem::create([
+            'dispensation_id' => $dispensation->getKey(),
+            'drug_id' => $drug->getKey(),
+            'quantity' => 10,
+            'unit_price' => 0,
+            'line_total' => 0,
+        ]);
+
+        $service = app(PharmacyInventoryService::class);
+        $completed = $service->completeDispensation($dispensation, performedBy: $user->getKey());
+
+        $completed->load('items');
+        $this->assertCount(1, $completed->items, 'Only the valid batch should be used.');
+        $this->assertSame($validBatch->getKey(), $completed->items->first()->drug_batch_id);
+
+        $validBatch->refresh();
+        $this->assertSame(10, (int) $validBatch->quantity_on_hand);
+    }
+
     public function test_complete_dispensation_allocates_fefo_and_deducts_stock(): void
     {
         $user = User::factory()->create();

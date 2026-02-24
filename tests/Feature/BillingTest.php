@@ -58,6 +58,12 @@ final class BillingTest extends TestCase
         $this->assertCount(1, $invoice->payments);
         $this->assertSame(5000, $invoice->payments->first()->amount);
 
+        // Verify invoice auto-recalculation via Payment::boot
+        $invoice->refresh();
+        $this->assertSame(5000, $invoice->paid);
+        $this->assertSame(5000, $invoice->balance);
+        $this->assertSame(InvoiceStatus::Partial, $invoice->status);
+
         $log = AuditLog::query()
             ->where('auditable_type', $invoice->getMorphClass())
             ->where('auditable_id', $invoice->getKey())

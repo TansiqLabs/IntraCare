@@ -52,7 +52,9 @@ class LabTestCatalog extends Model
      */
     public function getFormattedCostAttribute(): string
     {
-        return number_format($this->cost / 100, 2);
+        $smallestUnit = (int) config('intracare.currency.smallest_unit', 100);
+
+        return number_format($this->cost / ($smallestUnit ?: 100), 2);
     }
 
     // ──────────────────────────────────────────────

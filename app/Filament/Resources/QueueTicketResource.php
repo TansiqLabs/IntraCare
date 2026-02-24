@@ -46,7 +46,9 @@ class QueueTicketResource extends Resource
                             ->dehydrated(false),
                         Forms\Components\Select::make('status')
                             ->options(QueueTicketStatus::class)
-                            ->required(),
+                            ->required()
+                            ->disabled(fn (?QueueTicket $record) => $record !== null)
+                            ->dehydrated(),
                         Forms\Components\DatePicker::make('token_date')
                             ->required()
                             ->disabled(fn (?QueueTicket $record) => $record !== null)
@@ -149,11 +151,7 @@ class QueueTicketResource extends Resource
                     }),
                 Tables\Actions\EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array

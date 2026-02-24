@@ -19,6 +19,13 @@ class Visit extends Model
 {
     use Auditable, HasFactory, HasUlid, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (Visit $model) {
+            throw new \RuntimeException('Force-deleting visit records is prohibited.');
+        });
+    }
+
     protected $fillable = [
         'patient_id',
         'doctor_id',

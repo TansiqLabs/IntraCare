@@ -17,6 +17,13 @@ class LabOrder extends Model
 {
     use Auditable, HasUlid, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (LabOrder $model) {
+            throw new \RuntimeException('Force-deleting lab order records is prohibited.');
+        });
+    }
+
     protected $fillable = [
         'patient_id',
         'visit_id',

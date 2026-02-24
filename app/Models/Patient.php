@@ -19,6 +19,13 @@ class Patient extends Model
 {
     use Auditable, HasFactory, HasUlid, Searchable, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (Patient $model) {
+            throw new \RuntimeException('Force-deleting patient records is prohibited.');
+        });
+    }
+
     protected $fillable = [
         'mr_number',
         'first_name',

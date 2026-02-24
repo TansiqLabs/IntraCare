@@ -17,6 +17,13 @@ class Invoice extends Model
 {
     use Auditable, HasUlid, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (Invoice $model) {
+            throw new \RuntimeException('Force-deleting invoice records is prohibited.');
+        });
+    }
+
     protected $fillable = [
         'invoice_number',
         'patient_id',

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/setup', [SetupController::class, 'index'])->name('setup.index');
-Route::post('/setup', [SetupController::class, 'store'])->name('setup.store');
+Route::post('/setup', [SetupController::class, 'store'])->name('setup.store')->middleware('throttle:5,1');
 
 /*
 |--------------------------------------------------------------------------

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Queue;
 
+use App\Enums\QueueTicketStatus;
 use App\Models\QueueDepartment;
 use App\Models\QueueTicket;
 use Illuminate\Support\Collection;
@@ -17,6 +18,8 @@ class Display extends Component
 
     public function mount(QueueDepartment $department): void
     {
+        abort_unless($department->is_active, 404);
+
         $this->department = $department;
     }
 
@@ -32,7 +35,7 @@ class Display extends Component
             ->with(['counter'])
             ->where('queue_department_id', $this->department->getKey())
             ->whereDate('token_date', $today)
-            ->whereIn('status', ['called'])
+            ->where('status', QueueTicketStatus::Called)
             ->orderByDesc('called_at')
             ->get();
 
@@ -49,7 +52,7 @@ class Display extends Component
         return QueueTicket::query()
             ->where('queue_department_id', $this->department->getKey())
             ->whereDate('token_date', $today)
-            ->where('status', 'waiting')
+            ->where('status', QueueTicketStatus::Waiting)
             ->orderBy('token_number')
             ->limit(60)
             ->get();

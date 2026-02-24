@@ -29,6 +29,11 @@ class QueueCounter extends Model
         ];
     }
 
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
     public function department(): BelongsTo
     {
         return $this->belongsTo(QueueDepartment::class, 'queue_department_id');

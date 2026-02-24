@@ -18,6 +18,13 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use Auditable, HasFactory, HasRoles, HasUlid, Notifiable, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (User $model) {
+            throw new \RuntimeException('Force-deleting user records is prohibited.');
+        });
+    }
+
     protected $fillable = [
         'employee_id',
         'name',

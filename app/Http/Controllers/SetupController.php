@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password;
 
 class SetupController extends Controller
@@ -56,20 +57,24 @@ class SetupController extends Controller
             ]);
         }
 
-        // Create admin user
-        // NOTE: Do NOT wrap in Hash::make() — the User model's 'hashed' cast
-        // on the password attribute already handles hashing automatically.
-        $admin = User::create([
-            'employee_id' => 'EMP-0001',
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'is_active' => true,
-        ]);
+        // Create admin user inside a transaction to avoid partial state.
+        $admin = DB::transaction(function () use ($validated) {
+            // NOTE: Do NOT wrap in Hash::make() — the User model's 'hashed' cast
+            // on the password attribute already handles hashing automatically.
+            $admin = User::create([
+                'employee_id' => 'EMP-0001',
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'is_active' => true,
+            ]);
 
-        $admin->forceFill(['email_verified_at' => now()])->save();
+            $admin->forceFill(['email_verified_at' => now()])->save();
 
-        $admin->assignRole('Admin');
+            $admin->assignRole('Admin');
+
+            return $admin;
+        });
 
         // Create storage symlink (skip in tests)
         if (! app()->environment('testing')) {
@@ -93,8 +98,13 @@ class SetupController extends Controller
         $envPath = base_path('.env');
         $content = file_get_contents($envPath);
 
-        // Wrap in quotes if value has spaces
-        $escapedValue = str_contains($value, ' ') ? "\"{$value}\"" : $value;
+        // Sanitize value: strip newlines and carriage returns to prevent .env injection.
+        $sanitized = str_replace(["\n", "\r", "\0"], '', $value);
+
+        // Wrap in quotes if value has spaces or special characters
+        $escapedValue = (str_contains($sanitized, ' ') || str_contains($sanitized, '"'))
+            ? '"' . addcslashes($sanitized, '"') . '"'
+            : $sanitized;
 
         if (str_contains($content, "{$key}=")) {
             $content = preg_replace(

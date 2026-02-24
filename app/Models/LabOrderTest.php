@@ -53,7 +53,7 @@ class LabOrderTest extends Model
 
     public function sample(): HasOne
     {
-        return $this->hasOne(LabSample::class);
+        return $this->hasOne(LabSample::class)->latestOfMany();
     }
 
     public function results(): HasMany
